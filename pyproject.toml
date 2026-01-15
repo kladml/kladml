@@ -48,7 +48,7 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/kladml/kladml"
-Documentation = "https://kladml.github.io/docs"
+Documentation = "https://docs.klad.ml"
 Repository = "https://github.com/kladml/kladml.git"
 Issues = "https://github.com/kladml/kladml/issues"
 
