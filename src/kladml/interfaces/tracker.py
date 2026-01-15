@@ -3,22 +3,62 @@ Tracker Interface
 
 Abstract interface for experiment tracking.
 Allows Core ML code to log experiments without direct MLflow dependency.
+Now includes management methods for creating and retrieving experiments/runs.
 """
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, List
-from pathlib import Path
 
 
 class TrackerInterface(ABC):
     """
-    Abstract interface for experiment tracking.
+    Abstract interface for experiment tracking and management.
     
     Implementations:
     - LocalTracker (SDK): MLflow with local SQLite backend
     - MLflowTracker (Platform): MLflow with PostgreSQL + S3 backend
     """
     
+    # --- Management Methods ---
+    
+    @abstractmethod
+    def search_experiments(self, filter_string: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Search for experiments.
+        
+        Returns:
+            List of experiment dictionaries (id, name, etc.)
+        """
+        pass
+    
+    @abstractmethod
+    def get_experiment_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get experiment details by name."""
+        pass
+    
+    @abstractmethod
+    def create_experiment(self, name: str) -> str:
+        """Create a new experiment and return its ID."""
+        pass
+        
+    @abstractmethod
+    def search_runs(
+        self, 
+        experiment_id: str, 
+        filter_string: Optional[str] = None,
+        max_results: int = 100,
+        order_by: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Search for runs in an experiment."""
+        pass
+        
+    @abstractmethod
+    def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+        """Get run details by ID."""
+        pass
+
+    # --- Logging Methods ---
+
     @abstractmethod
     def start_run(
         self, 

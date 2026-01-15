@@ -2,13 +2,17 @@
 Local Tracker Backend
 
 MLflow-based local tracking with SQLite backend.
+Implements TrackerInterface.
 """
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+import logging
 
 from kladml.interfaces import TrackerInterface
+
+logger = logging.getLogger(__name__)
 
 
 class LocalTracker(TrackerInterface):
@@ -16,13 +20,6 @@ class LocalTracker(TrackerInterface):
     Local experiment tracker using MLflow with SQLite backend.
     
     All data is stored locally - no server required.
-    
-    Example:
-        tracker = LocalTracker("./mlruns")
-        run_id = tracker.start_run("my-experiment", run_name="test-1")
-        tracker.log_params({"lr": 0.001, "epochs": 10})
-        tracker.log_metric("loss", 0.5, step=1)
-        tracker.end_run()
     """
     
     def __init__(self, tracking_dir: str = "./mlruns"):
@@ -33,9 +30,9 @@ class LocalTracker(TrackerInterface):
             tracking_dir: Directory for MLflow tracking data
         """
         self.tracking_dir = Path(tracking_dir).resolve()
-        self.tracking_dir.mkdir(parents=True, exist_ok=True)
         
         # Set MLflow tracking URI to local SQLite
+        # Create directory only when needed to avoid empty folders
         self._tracking_uri = f"sqlite:///{self.tracking_dir}/mlflow.db"
         self._artifact_root = str(self.tracking_dir / "artifacts")
         
@@ -46,6 +43,9 @@ class LocalTracker(TrackerInterface):
         """Lazy-load MLflow to avoid import overhead."""
         if self._mlflow is None:
             try:
+                # Ensure directory exists before initializing MLflow
+                self.tracking_dir.mkdir(parents=True, exist_ok=True)
+                
                 import mlflow
                 mlflow.set_tracking_uri(self._tracking_uri)
                 self._mlflow = mlflow
@@ -55,6 +55,109 @@ class LocalTracker(TrackerInterface):
                     "Install with: pip install mlflow"
                 )
         return self._mlflow
+
+    # --- Management Methods ---
+
+    def search_experiments(self, filter_string: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Search for experiments."""
+        mlflow = self._ensure_mlflow()
+        try:
+            experiments = mlflow.search_experiments(filter_string=filter_string)
+            return [
+                {
+                    "id": exp.experiment_id,
+                    "name": exp.name,
+                    "artifact_location": exp.artifact_location,
+                    "lifecycle_stage": exp.lifecycle_stage,
+                    "creation_time": exp.creation_time,
+                }
+                for exp in experiments
+            ]
+        except Exception as e:
+            logger.error(f"Failed to search experiments: {e}")
+            return []
+
+    def get_experiment_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get experiment details by name."""
+        mlflow = self._ensure_mlflow()
+        try:
+            exp = mlflow.get_experiment_by_name(name)
+            if exp:
+                return {
+                    "id": exp.experiment_id,
+                    "name": exp.name,
+                    "artifact_location": exp.artifact_location,
+                    "lifecycle_stage": exp.lifecycle_stage,
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get experiment '{name}': {e}")
+            return None
+
+    def create_experiment(self, name: str) -> str:
+        """Create a new experiment and return its ID."""
+        mlflow = self._ensure_mlflow()
+        # Check if exists first
+        existing = mlflow.get_experiment_by_name(name)
+        if existing:
+            return existing.experiment_id
+        return mlflow.create_experiment(name)
+
+    def search_runs(
+        self, 
+        experiment_id: str, 
+        filter_string: Optional[str] = None,
+        max_results: int = 100,
+        order_by: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Search for runs in an experiment."""
+        mlflow = self._ensure_mlflow()
+        try:
+            runs = mlflow.search_runs(
+                experiment_ids=[experiment_id],
+                filter_string=filter_string,
+                max_results=max_results,
+                order_by=order_by or ["start_time DESC"],
+            )
+            
+            result = []
+            for _, run in runs.iterrows():
+                result.append({
+                    "run_id": run.run_id,
+                    "run_name": run.get("tags.mlflow.runName", run.run_id[:8]),
+                    "status": run.status,
+                    "start_time": run.start_time,
+                    "end_time": run.end_time,
+                    "metrics": {k.replace("metrics.", ""): v for k, v in run.items() if k.startswith("metrics.")},
+                    "params": {k.replace("params.", ""): v for k, v in run.items() if k.startswith("params.")},
+                })
+            return result
+        except Exception as e:
+            # If no runs found, search_runs might return empty DF or fail depending on version
+            logger.warning(f"Failed to search runs for exp '{experiment_id}': {e}")
+            return []
+
+    def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+        """Get run details by ID."""
+        mlflow = self._ensure_mlflow()
+        try:
+            run = mlflow.get_run(run_id)
+            return {
+                "run_id": run.info.run_id,
+                "run_name": run.info.run_name,
+                "experiment_id": run.info.experiment_id,
+                "status": run.info.status,
+                "start_time": run.info.start_time,
+                "end_time": run.info.end_time,
+                "metrics": run.data.metrics,
+                "params": run.data.params,
+                "artifact_uri": run.info.artifact_uri,
+            }
+        except Exception as e:
+            logger.error(f"Failed to get run '{run_id}': {e}")
+            return None
+
+    # --- Logging Methods ---
     
     def start_run(
         self, 
@@ -87,7 +190,10 @@ class LocalTracker(TrackerInterface):
     def log_params(self, params: Dict[str, Any]) -> None:
         """Log multiple parameters."""
         if self._mlflow:
-            self._mlflow.log_params(params)
+            # Filter None values
+            clean_params = {k: v for k, v in params.items() if v is not None}
+            if clean_params:
+                self._mlflow.log_params(clean_params)
     
     def log_metric(self, key: str, value: float, step: Optional[int] = None) -> None:
         """Log a single metric."""
@@ -107,8 +213,8 @@ class LocalTracker(TrackerInterface):
     def log_model(self, model: Any, artifact_path: str, **kwargs) -> None:
         """Log a model artifact."""
         if self._mlflow:
-            # Try to detect model type and use appropriate flavor
-            # For now, just save as a generic artifact
+            # Try to detect model type and use appropriate flavor logic
+            # For this MVP, we pickle it (basic support)
             import tempfile
             import pickle
             
@@ -143,56 +249,28 @@ class NoOpTracker(TrackerInterface):
     No-operation tracker.
     
     Does nothing - useful when MLflow is not installed or tracking is not needed.
-    All methods are no-ops that return sensible defaults.
     """
     
     def __init__(self):
-        self._run_id = None
-    
-    def start_run(
-        self, 
-        experiment_name: str, 
-        run_name: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None
-    ) -> str:
-        """Generate a fake run ID."""
-        import uuid
-        self._run_id = str(uuid.uuid4())[:8]
-        return self._run_id
-    
-    def end_run(self, status: str = "FINISHED") -> None:
-        """Do nothing."""
         pass
-    
-    def log_param(self, key: str, value: Any) -> None:
-        """Do nothing."""
-        pass
-    
-    def log_params(self, params: Dict[str, Any]) -> None:
-        """Do nothing."""
-        pass
-    
-    def log_metric(self, key: str, value: float, step: Optional[int] = None) -> None:
-        """Do nothing."""
-        pass
-    
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Do nothing."""
-        pass
-    
-    def log_artifact(self, local_path: str, artifact_path: Optional[str] = None) -> None:
-        """Do nothing."""
-        pass
-    
-    def log_model(self, model: Any, artifact_path: str, **kwargs) -> None:
-        """Do nothing."""
-        pass
+
+    # Management stubs
+    def search_experiments(self, filter_string=None): return []
+    def get_experiment_by_name(self, name): return None
+    def create_experiment(self, name): return "noop-exp-id"
+    def search_runs(self, experiment_id, **kwargs): return []
+    def get_run(self, run_id): return None
+
+    # Logging stubs
+    def start_run(self, experiment_name, run_name=None, tags=None): return "noop-run-id"
+    def end_run(self, status="FINISHED"): pass
+    def log_param(self, key, value): pass
+    def log_params(self, params): pass
+    def log_metric(self, key, value, step=None): pass
+    def log_metrics(self, metrics, step=None): pass
+    def log_artifact(self, local_path, artifact_path=None): pass
+    def log_model(self, model, artifact_path, **kwargs): pass
     
     @property
-    def active_run_id(self) -> Optional[str]:
-        """Return the fake run ID."""
-        return self._run_id
-    
-    def get_artifact_uri(self, artifact_path: str = "") -> str:
-        """Return a local path."""
-        return f"./artifacts/{artifact_path}"
+    def active_run_id(self): return "noop-run-id"
+    def get_artifact_uri(self, artifact_path=""): return ""
