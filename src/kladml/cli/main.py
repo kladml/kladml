@@ -41,12 +41,15 @@ def version():
 
 @app.command()
 def init(
-    name: str = typer.Argument(..., help="Project name"),
-    template: str = typer.Option("default", "--template", "-t", help="Project template"),
+    force: bool = typer.Option(False, "--force", "-f", help="Re-create structure even if exists"),
 ):
-    """Initialize a new KladML project."""
-    from kladml.cli.project import do_init
-    do_init(name, template)
+    """
+    Initialize a KladML workspace in the current directory.
+    
+    Creates standard data directory structure.
+    """
+    from kladml.cli.init import init_workspace
+    init_workspace(force)
 
 
 if __name__ == "__main__":
