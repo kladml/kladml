@@ -14,6 +14,10 @@ on:
         options:
           - testpypi
           - pypi
+      version_override:
+        description: "Manual version (e.g. 0.1.0rc1). Leave empty for auto-generated dev version."
+        required: false
+        type: string
 
 jobs:
   build:
@@ -28,16 +32,23 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Get version from tag
+      - name: Calculate Version
         id: version
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          if [[ "${{ github.event.inputs.version_override }}" != "" ]]; then
+            # Manual override from workflow dispatch
+            VERSION="${{ github.event.inputs.version_override }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tagged release (e.g. v0.1.0 -> 0.1.0)
             VERSION="${GITHUB_REF#refs/tags/v}"
           else
-            VERSION="0.0.0.dev0"
+            # Auto-generated dev version with run number to avoid collisions
+            # e.g. 0.1.0.dev145
+            VERSION="0.1.0.dev${{ github.run_number }}"
           fi
+
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
+          echo "Selected version: $VERSION"
 
       - name: Install build dependencies
         run: |
