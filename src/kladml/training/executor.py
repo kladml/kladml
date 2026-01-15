@@ -12,11 +12,14 @@ import itertools
 import time
 import logging
 import uuid
+import os
 from typing import Dict, Any, List, Optional, Tuple, Type
+from pathlib import Path
 
 from kladml.base import BaseArchitecture
 from kladml.interfaces.tracker import TrackerInterface
 from kladml.interfaces.publisher import PublisherInterface
+from kladml.utils.paths import resolve_dataset_path, resolve_preprocessor_path
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,7 @@ class LocalTrainingExecutor:
         - Semantic run naming
         - Best model tracking
         - MLflow integration
+        - Automatic path resolution for datasets/preprocessors
     
     Example:
         >>> executor = LocalTrainingExecutor(
@@ -41,7 +45,7 @@ class LocalTrainingExecutor:
         ...     config={"epochs": 10}
         ... )
         >>> run_ids = executor.execute_grid_search(
-        ...     data_path="./data",
+        ...     data_path="my_dataset",  # -> data/datasets/my_dataset
         ...     search_space={"lr": [0.01, 0.001]}
         ... )
     """
@@ -88,18 +92,21 @@ class LocalTrainingExecutor:
         Execute grid search over parameter combinations.
         
         Args:
-            data_path: Path to training data
+            data_path: Path to training data (resolved relative to data/datasets/ if not absolute)
             search_space: Dict of param_name -> list of values
             
         Returns:
             List of MLflow run IDs
         """
+        resolved_data_path = str(resolve_dataset_path(data_path))
+        
         combinations = self._generate_combinations(search_space)
         
         if not combinations:
             combinations = [{}]
         
         logger.info(f"Grid Search: {len(combinations)} combinations")
+        logger.info(f"Using dataset: {resolved_data_path}")
         
         # Reset best tracking
         self._best_run_id = None
@@ -116,7 +123,7 @@ class LocalTrainingExecutor:
             
             try:
                 run_id, metrics = self._execute_single_run(
-                    data_path=data_path,
+                    data_path=resolved_data_path,
                     params=params,
                     run_name=run_name,
                 )
@@ -151,7 +158,7 @@ class LocalTrainingExecutor:
         Execute a single training run.
         
         Args:
-            data_path: Path to training data
+            data_path: Path to training data (resolved relative to data/datasets/ if not absolute)
             params: Parameters for this run
             run_name: Optional custom run name
             
@@ -161,7 +168,17 @@ class LocalTrainingExecutor:
         params = params or {}
         run_name = run_name or self._semantic_run_name(params, 1, 1)
         
-        return self._execute_single_run(data_path, params, run_name)
+        resolved_data_path = str(resolve_dataset_path(data_path))
+        
+        # Also resolve preprocessor if present in params/config
+        # Note: params override config
+        merged_config = {**self.config, **params}
+        if "preprocessor" in merged_config:
+             prep_path = resolve_preprocessor_path(merged_config["preprocessor"])
+             params["preprocessor"] = str(prep_path)
+             # Update merged config implicitly in _execute_single_run but good to have explicit resolve logic here if needed
+        
+        return self._execute_single_run(resolved_data_path, params, run_name)
     
     def _execute_single_run(
         self,
@@ -177,6 +194,10 @@ class LocalTrainingExecutor:
         # Merge base config with run-specific params
         run_config = {**self.config, **params}
         run_config["data_path"] = data_path
+        
+        # Resolve 'preprocessor' in config if likely a file path
+        if "preprocessor" in run_config:
+             run_config["preprocessor"] = str(resolve_preprocessor_path(run_config["preprocessor"]))
         
         # Generate a local run ID (will be replaced by MLflow run ID if available)
         local_run_id = str(uuid.uuid4())[:8]
@@ -197,7 +218,7 @@ class LocalTrainingExecutor:
                 run_name=run_name,
             )
             # Log all config params (merged)
-            # Filter out complex objects like data_path if it's not a string/number (though typically config is simple)
+            # Filter out complex objects like data_path if it's not a string/number
             loggable_params = {
                 k: v for k, v in run_config.items() 
                 if isinstance(v, (str, int, float, bool))
