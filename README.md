@@ -1,23 +1,31 @@
-# KladML SDK
+<div align="center">
 
-<p align="center">
-  <strong>🚀 Enterprise-grade MLOps toolkit for Python</strong>
-</p>
+# KladML
 
-<p align="center">
-  <a href="https://pypi.org/project/kladml/"><img src="https://img.shields.io/pypi/v/kladml.svg" alt="PyPI"></a>
-  <a href="https://pypi.org/project/kladml/"><img src="https://img.shields.io/pypi/pyversions/kladml.svg" alt="Python"></a>
-  <a href="https://github.com/kladml/kladml/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-</p>
+**Build ML pipelines with pluggable backends. Simple. Modular. Yours.**
+
+[![PyPI version](https://img.shields.io/pypi/v/kladml.svg)](https://pypi.org/project/kladml/)
+[![Python versions](https://img.shields.io/pypi/pyversions/kladml.svg)](https://pypi.org/project/kladml/)
+[![License](https://img.shields.io/github/license/kladml/kladml.svg)](https://github.com/kladml/kladml/blob/main/LICENSE)
+[![Downloads](https://static.pepy.tech/badge/kladml/month)](https://pypi.org/project/kladml/)
+
+`⭐ Star us on GitHub to support the project!`
+
+</div>
 
 ---
 
-**KladML** is a lightweight, extensible SDK for building production ML pipelines. It provides:
+## Why KladML?
 
-- 🔌 **Pluggable backends** - Swap between local filesystem and cloud storage seamlessly
-- 📊 **Experiment tracking** - MLflow integration out of the box
-- 🎯 **Type-safe interfaces** - Abstract contracts for all core services
-- 💻 **CLI included** - Initialize projects, run experiments from terminal
+| Feature | KladML | MLflow | ClearML |
+|---------|--------|--------|---------|
+| **Interface-based** | ✅ Pluggable | ❌ Hardcoded | ❌ Hardcoded |
+| **Server required** | ❌ No | ⚠️ Optional | ✅ Yes |
+| **Local-first** | ✅ SQLite default | ✅ Yes | ❌ No |
+| **Learning curve** | 🟢 Minutes | 🟡 Hours | 🔴 Days |
+| **Custom backends** | ✅ Easy | ⚠️ Complex | ❌ No |
+
+---
 
 ## Installation
 
@@ -25,77 +33,65 @@
 pip install kladml
 ```
 
-This includes MLflow for experiment tracking out of the box.
-
 ## Quick Start
 
-### 1. Initialize a Project
-
 ```bash
+# Initialize a project
 kladml init my-project
 cd my-project
+
+# Run training locally
+kladml run native train.py
 ```
 
-### 2. Create Your Model
+### Create Your Model
 
 ```python
-from kladml import TimeSeriesModel, MLTask
+from kladml import TimeSeriesModel, ExperimentRunner
 
 class MyForecaster(TimeSeriesModel):
-    
     def train(self, X_train, y_train=None, **kwargs):
         # Your training logic
         return {"loss": 0.1}
     
     def predict(self, X, **kwargs):
-        # Your prediction logic
         return predictions
     
     def evaluate(self, X_test, y_test=None, **kwargs):
         return {"mae": 0.5, "mse": 0.25}
     
     def save(self, path: str):
-        # Save model state
         pass
     
     def load(self, path: str):
-        # Load model state
         pass
-```
 
-### 3. Run Training
-
-```python
-from kladml import ExperimentRunner
-
+# Run with experiment tracking
 runner = ExperimentRunner()
 result = runner.run(
     model_class=MyForecaster,
     train_data=train_data,
     experiment_name="my-experiment",
 )
-print(f"Run ID: {result['run_id']}")
 ```
 
-Or via CLI:
-```bash
-kladml run native train.py --experiment my-experiment
-```
+---
 
 ## Architecture
 
-KladML uses **dependency injection** with abstract interfaces, allowing you to swap implementations:
+KladML uses **dependency injection** with abstract interfaces. Swap implementations without changing your code:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Your Code                                │
+│                      Your Code                              │
 ├─────────────────────────────────────────────────────────────┤
-│                  ExperimentRunner                           │
+│                   ExperimentRunner                          │
 ├─────────────────────────────────────────────────────────────┤
 │  StorageInterface  │  ConfigInterface  │  TrackerInterface  │
 ├─────────────────────────────────────────────────────────────┤
 │  LocalStorage      │  YamlConfig       │  LocalTracker      │
-│  (filesystem)      │  (kladml.yaml)    │  (MLflow+SQLite)   │
+│  S3Storage         │  EnvConfig        │  MLflowTracker     │
+│  (your impl)       │  (your impl)      │  (your impl)       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -105,28 +101,32 @@ KladML uses **dependency injection** with abstract interfaces, allowing you to s
 from kladml.interfaces import StorageInterface
 
 class S3Storage(StorageInterface):
-    """Custom S3 implementation for production."""
+    """Custom S3 implementation."""
     
     def upload_file(self, local_path, bucket, key):
         # Your S3 logic
         ...
 
-# Use it
+# Plug it in
 runner = ExperimentRunner(storage=S3Storage())
 ```
 
+---
+
 ## Interfaces
 
-| Interface | Description | Default Implementation |
-|-----------|-------------|------------------------|
-| `StorageInterface` | Object storage (files, artifacts) | `LocalStorage` (filesystem) |
-| `ConfigInterface` | Configuration management | `YamlConfig` (kladml.yaml + env) |
-| `PublisherInterface` | Real-time metric publishing | `ConsolePublisher` (stdout) |
+| Interface | Description | Default |
+|-----------|-------------|---------|
+| `StorageInterface` | Object storage (files, artifacts) | `LocalStorage` |
+| `ConfigInterface` | Configuration management | `YamlConfig` |
+| `PublisherInterface` | Real-time metric publishing | `ConsolePublisher` |
 | `TrackerInterface` | Experiment tracking | `LocalTracker` (MLflow + SQLite) |
+
+---
 
 ## Configuration
 
-Create `kladml.yaml` in your project root:
+Create `kladml.yaml`:
 
 ```yaml
 project:
@@ -138,9 +138,6 @@ training:
 
 storage:
   artifacts_dir: ./artifacts
-
-mlflow:
-  tracking_uri: sqlite:///mlruns.db
 ```
 
 Or use environment variables:
@@ -150,29 +147,32 @@ export KLADML_TRAINING_DEVICE=cuda
 export KLADML_STORAGE_ARTIFACTS_DIR=/data/artifacts
 ```
 
+---
+
 ## CLI Commands
 
 ```bash
-kladml --help                    # Show all commands
-kladml init <name>               # Initialize new project
-kladml run native <script>       # Run training locally
-kladml run local <script>        # Run in Docker container
+kladml --help                 # Show all commands
+kladml init <name>            # Initialize new project
+kladml run native <script>    # Run with local Python
+kladml run local <script>     # Run in Docker (GPU support)
+kladml version                # Show version
 ```
 
-## Development
+---
+
+## Contributing
+
+PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ```bash
-# Clone and install in development mode
 git clone https://github.com/kladml/kladml.git
 cd kladml
-pip install -e ".[dev,tracking]"
-
-# Run tests
+pip install -e ".[dev]"
 pytest
-
-# Build package
-python -m build
 ```
+
+---
 
 ## License
 
@@ -180,6 +180,10 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-<p align="center">
-  Made with ❤️ by the KladML Team
-</p>
+<div align="center">
+
+**[Documentation](https://docs.klad.ml)** · **[PyPI](https://pypi.org/project/kladml/)** · **[GitHub](https://github.com/kladml/kladml)**
+
+Made with ❤️ by the KladML Team
+
+</div>
