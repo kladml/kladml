@@ -1,6 +1,6 @@
-# Getting Started with KladML
+# Getting Started
 
-KladML is a production-grade MLOps SDK designed to standardize how you train, track, and deploy machine learning models.
+This guide will get you up and running with KladML in under 5 minutes.
 
 ## Installation
 
@@ -8,61 +8,151 @@ KladML is a production-grade MLOps SDK designed to standardize how you train, tr
 pip install kladml
 ```
 
-For full feature support (including MLflow tracking):
+This installs:
+
+- The `kladml` Python package
+- MLflow for experiment tracking
+- CLI commands (`kladml init`, `kladml run`, etc.)
+
+### Verify Installation
 
 ```bash
-pip install "kladml[all]"
+kladml version
+# KladML version 0.1.0
 ```
 
-## Quick Start 🚀
+---
 
-### 1. Initialize a Project
-
-Create a new project directory with the standard structure:
+## Create Your First Project
 
 ```bash
-kladml init my-forecasting-project --template timeseries
-cd my-forecasting-project
+kladml init my-project
+cd my-project
 ```
 
 This creates:
-- `kladml.yaml`: Configuration file.
-- `train.py`: Example training script.
-- `data/`, `models/`, `experiments/`: Organized folders.
 
-### 2. Run Training Locally
-
-You can run your script in two ways:
-
-**A. Native (Fastest for Dev)**
-Runs directly in your current Python environment (conda/venv). No Docker required.
-
-```bash
-kladml run native train.py --experiment quick-test
+```
+my-project/
+├── kladml.yaml      # Project configuration
+├── train.py         # Example training script
+├── data/            # Dataset directory
+├── models/          # Saved models
+└── experiments/     # Experiment outputs
 ```
 
-**B. Containerized (Best for Reproducibility)**
-Runs inside a Docker or Podman container. Ensures your code runs in a clean, production-like environment.
+---
+
+## Run Training
+
+### Option 1: Native (Development)
+
+Run directly with your local Python environment:
 
 ```bash
-# Auto-detects Docker or Podman
+kladml run native train.py
+```
+
+!!! tip "Best for development"
+    Native mode is fastest for iterating on your code. No Docker required.
+
+### Option 2: Containerized (Reproducibility)
+
+Run inside a Docker/Podman container:
+
+```bash
 kladml run local train.py
-
-# Force specific runtime
-kladml run local train.py --runtime podman
 ```
 
-### 3. Track Experiments
+!!! note "GPU Support"
+    For CUDA, use `--device cuda`. The container automatically uses the GPU image.
+    ```bash
+    kladml run local train.py --device cuda
+    ```
 
-KladML automatically tracks parameters and metrics. By default, it uses a local SQLite database.
+---
 
-View your experiments with MLflow (if installed):
+## Create a Model
+
+Here's a minimal example:
+
+```python
+from kladml import TimeSeriesModel
+
+class MyForecaster(TimeSeriesModel):
+    
+    def train(self, X_train, y_train=None, **kwargs):
+        """Train the model. Return metrics dict."""
+        # Your training logic here
+        self.weights = ...
+        return {"loss": 0.1, "epochs": 10}
+    
+    def predict(self, X, **kwargs):
+        """Generate predictions."""
+        return self.weights @ X
+    
+    def evaluate(self, X_test, y_test=None, **kwargs):
+        """Evaluate on test data. Return metrics dict."""
+        predictions = self.predict(X_test)
+        return {"mae": abs(predictions - y_test).mean()}
+    
+    def save(self, path: str):
+        """Save model to directory."""
+        import json
+        with open(f"{path}/weights.json", "w") as f:
+            json.dump(self.weights.tolist(), f)
+    
+    def load(self, path: str):
+        """Load model from directory."""
+        import json
+        with open(f"{path}/weights.json") as f:
+            self.weights = json.load(f)
+```
+
+---
+
+## Use the ExperimentRunner
+
+The `ExperimentRunner` handles:
+
+- Creating MLflow runs
+- Logging parameters and metrics
+- Saving artifacts
+- Managing the training lifecycle
+
+```python
+from kladml import ExperimentRunner
+
+runner = ExperimentRunner()
+
+result = runner.run(
+    model_class=MyForecaster,
+    train_data=(X_train, y_train),
+    test_data=(X_test, y_test),
+    experiment_name="my-experiment",
+    params={"learning_rate": 0.01}
+)
+
+print(f"Run ID: {result['run_id']}")
+print(f"Metrics: {result['metrics']}")
+```
+
+---
+
+## View Experiments
+
+KladML uses MLflow for tracking. View your experiments:
 
 ```bash
 mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
 ```
 
+Open http://localhost:5000 in your browser.
+
+---
+
 ## Next Steps
 
-- Learn about [Core Concepts](core_concepts.md)
-- Explore the [Architecture](architecture.md)
+- [Core Concepts](core_concepts.md) - Understand interfaces and architecture
+- [Architecture](architecture.md) - Deep dive into model contracts
+- [CLI Reference](cli.md) - All available commands
