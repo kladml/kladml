@@ -37,7 +37,7 @@ kladml run native train.py
 | **Interface-based** | ✅ Pluggable | ❌ Hardcoded | ❌ Hardcoded |
 | **Server required** | ❌ No | ⚠️ Optional | ✅ Yes |
 | **Local-first** | ✅ SQLite default | ✅ Yes | ❌ No |
-| **Learning curve** | 🟢 Minutes | 🟡 Hours | 🔴 Days |
+| **Learning curve** | 🟢 Minutes | 🟡 Days | 🔴 Weeks |
 | **Custom backends** | ✅ Easy | ⚠️ Complex | ❌ No |
 
 ## Documentation
