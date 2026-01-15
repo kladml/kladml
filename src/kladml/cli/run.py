@@ -6,10 +6,15 @@ import typer
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
+
+from kladml.interfaces import TrackerInterface
+from kladml.backends.local_tracker import LocalTracker
 
 app = typer.Typer()
 console = Console()
+
+# Tracker for validation
+tracker: TrackerInterface = LocalTracker()
 
 
 @app.command("local")
@@ -18,6 +23,7 @@ def run_local(
     device: str = typer.Option("auto", "--device", "-d", help="Device: auto|cpu|cuda|mps"),
     runtime: str = typer.Option("auto", "--runtime", "-r", help="Container runtime: auto|docker|podman"),
     image: str = typer.Option(None, "--image", "-i", help="Custom Docker image to use"),
+    experiment: str = typer.Option(None, "--experiment", "-e", help="Associated experiment name"),
 ):
     """
     Run training locally using a container runtime (Docker, Podman, etc).
@@ -30,7 +36,13 @@ def run_local(
     if not script_path.exists():
         console.print(f"[bold red]❌ Script not found:[/bold red] {script}")
         raise typer.Exit(code=1)
-    
+        
+    # Validation via Tracker
+    if experiment:
+        if not tracker.get_experiment_by_name(experiment):
+             # Just a warning, container might create it
+             console.print(f"[yellow]Note: Experiment '{experiment}' does not exist yet locally.[/yellow]")
+
     # 1. Detect Runtime
     if runtime == "auto":
         if shutil.which("docker"):
@@ -49,7 +61,6 @@ def run_local(
 
     # 2. Detect Device & Image
     if device == "auto":
-        # Try to detect CUDA via nvidia-smi
         try:
             subprocess.run(
                 ["nvidia-smi"], capture_output=True, check=True
@@ -65,7 +76,7 @@ def run_local(
             "cuda": "ghcr.io/kladml/worker:cuda12",
             "cuda11": "ghcr.io/kladml/worker:cuda11",
             "cuda12": "ghcr.io/kladml/worker:cuda12",
-            "mps": "ghcr.io/kladml/worker:cpu",  # MPS runs on host/cpu image mainly
+            "mps": "ghcr.io/kladml/worker:cpu", 
         }
         docker_image = image_map.get(device, image_map["cpu"])
     else:
@@ -85,6 +96,7 @@ def run_local(
         runtime_cmd, "run", "--rm",
         "-v", f"{cwd}:/workspace",
         "-w", "/workspace",
+        "--network", "host", # Allow access to local MLflow/services
     ]
     
     # Add GPU support
@@ -92,27 +104,23 @@ def run_local(
         if runtime_cmd == "docker":
             cmd.extend(["--gpus", "all"])
         elif runtime_cmd == "podman":
-            # Podman uses --device nvidia.com/gpu=all or hooks
-            # Simplest often is --device nvidia.com/gpu=all if cdi is set up, 
-            # or --gpus all checks for nvidia-container-toolkit compatibility
             cmd.extend(["--device", "nvidia.com/gpu=all"]) 
-            # Note: Podman GPU support varies by version/setup. 
-            # Some setups use --security-opt=label=disable --hooks-dir...
+            cmd.extend(["--security-opt=label=disable"]) # Often needed for Podman GPU
     
     # Add environment variables
-    # 1. Project Config (kladml.yaml)
     from kladml.backends.local_config import YamlConfig
     config = YamlConfig()
     
-    # Pass common KladML variables
     env_vars = {
         "KLADML_PROJECT_NAME": config.get("project.name", "unknown"),
         "KLADML_TRAINING_DEVICE": device,
     }
     
-    # 3. Add to command
+    if experiment:
+        env_vars["KLADML_EXPERIMENT"] = experiment
+
     for k, v in env_vars.items():
-        if v:  # Only pass if value exists
+        if v:
              cmd.extend(["-e", f"{k}={v}"])
     
     cmd.extend([docker_image, "python", script])
@@ -138,25 +146,17 @@ def run_local(
             console.print("\n[bold green]✅ Run completed successfully.[/bold green]")
         else:
             console.print(f"\n[bold red]❌ Run failed with code {process.returncode}[/bold red]")
-            
-            # Suggest fixes for common GPU runtime errors
             if process.returncode == 126 and device.startswith("cuda") and runtime_cmd == "podman":
                 console.print(Panel(
-                    "[bold yellow]💡 GPU Runtime Hint:[/bold yellow]\n"
-                    "It looks like Podman failed to access the GPU (CDI error).\n"
-                    "Please execute the following command on your host to generate the NVIDIA CDI config:\n\n"
-                    "  [bold cyan]sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml[/bold cyan]\n\n"
-                    "Then retry this command.",
-                    title="Setup Required",
+                    "Podman GPU Error? Try: sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml",
+                    title="Setup Hint",
                     border_style="yellow"
                 ))
-                
             raise typer.Exit(code=process.returncode)
             
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e}")
         raise typer.Exit(code=1)
-
 
 
 @app.command("native")
@@ -165,33 +165,30 @@ def run_native(
     experiment: str = typer.Option("default", "--experiment", "-e", help="Experiment name"),
 ):
     """
-    Run training natively (no Docker) using local backends.
-    
-    Uses filesystem storage, SQLite tracking, and console output.
-    Perfect for development and testing.
+    Run training natively (no Docker).
     """
     import subprocess
     import sys
+    import os
     
     script_path = Path(script)
     if not script_path.exists():
         console.print(f"[bold red]❌ Script not found:[/bold red] {script}")
         raise typer.Exit(code=1)
     
+    # Ensure experiment exists via Tracker
+    exp_id = tracker.create_experiment(experiment)
+    
     console.print(Panel.fit(
-        f"[bold blue]🚀 Running natively (no Docker)[/bold blue]\n"
+        f"[bold blue]🚀 Running natively[/bold blue]\n"
         f"Script: [cyan]{script}[/cyan]\n"
-        f"Experiment: [cyan]{experiment}[/cyan]\n"
-        f"Storage: [dim]./kladml_data[/dim]\n"
-        f"Tracking: [dim]./mlruns/mlflow.db[/dim]"
+        f"Experiment: [cyan]{experiment}[/cyan] (ID: {exp_id})\n"
+        f"Tracking: [dim]SQLite[/dim]"
     ))
     
-    # Set environment variables for the script
-    import os
     env = os.environ.copy()
     env["KLADML_EXPERIMENT"] = experiment
     
-    # Run the script directly
     try:
         process = subprocess.Popen(
             [sys.executable, script],
@@ -209,7 +206,6 @@ def run_native(
         
         if process.returncode == 0:
             console.print("\n[bold green]✅ Run completed successfully.[/bold green]")
-            console.print("[dim]Check ./mlruns for experiment tracking data.[/dim]")
         else:
             console.print(f"\n[bold red]❌ Run failed with code {process.returncode}[/bold red]")
             raise typer.Exit(code=process.returncode)
@@ -217,4 +213,3 @@ def run_native(
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e}")
         raise typer.Exit(code=1)
-

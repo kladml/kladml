@@ -1,5 +1,11 @@
 """
 KladML CLI - Main Entry Point
+
+Provides a rich CLI for:
+- Project management
+- Experiment management
+- Training (single and grid search)
+- Run management
 """
 
 import typer
@@ -16,11 +22,14 @@ console = Console()
 
 # Import subcommands
 from kladml.cli import run, project
+from kladml.cli import projects, experiments, train
 
 
 # Register subcommands
-app.add_typer(project.app, name="project", help="Project management") 
-app.add_typer(run.app, name="run", help="Run experiments")
+app.add_typer(projects.app, name="project", help="Manage projects")
+app.add_typer(experiments.app, name="experiment", help="Manage experiments")
+app.add_typer(train.app, name="train", help="Train models")
+app.add_typer(run.app, name="run", help="Run scripts and manage runs")
 
 
 @app.command()
@@ -42,3 +51,4 @@ def init(
 
 if __name__ == "__main__":
     app()
+

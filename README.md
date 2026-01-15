@@ -4,8 +4,8 @@
 
 **Build ML pipelines with pluggable backends. Simple. Modular. Yours.**
 
-[![PyPI version](https://img.shields.io/pypi/v/kladml.svg)](https://pypi.org/project/kladml/)
-[![Python versions](https://img.shields.io/pypi/pyversions/kladml.svg)](https://pypi.org/project/kladml/)
+![PyPI - Version](https://img.shields.io/pypi/v/kladml)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kladml)
 [![License](https://img.shields.io/github/license/kladml/kladml.svg)](https://github.com/kladml/kladml/blob/main/LICENSE)
 [![Downloads](https://static.pepy.tech/badge/kladml/month)](https://pypi.org/project/kladml/)
 
