@@ -42,25 +42,10 @@ kladml run native train.py
 
 ## Documentation
 
-<div class="grid cards" markdown>
-
-- :rocket: **[Getting Started](getting_started.md)**
-  
-    Install, configure, and run your first experiment
-
-- :brain: **[Core Concepts](core_concepts.md)**
-  
-    Understand interfaces, runners, and the architecture
-
-- :building_construction: **[Architecture](architecture.md)**
-  
-    Deep dive into model contracts and design patterns
-
-- :package: **[CLI Reference](cli.md)**
-  
-    All available commands and options
-
-</div>
+- 🚀 **[Getting Started](getting_started.md)** — Install, configure, and run your first experiment
+- 🧠 **[Core Concepts](core_concepts.md)** — Understand interfaces, runners, and the architecture
+- 🏗️ **[Architecture](architecture.md)** — Deep dive into model contracts and design patterns
+- 📦 **[CLI Reference](cli.md)** — All available commands and options
 
 ## Example
 
