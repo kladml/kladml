@@ -1,0 +1,78 @@
+[project]
+name = "kladml"
+dynamic = ["version"]
+description = "KladML SDK - Enterprise-grade MLOps toolkit"
+readme = "README.md"
+authors = [
+    {name = "KladML Team", email = "marcello@netcaring.com"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.21.0",
+    "pyyaml>=6.0",
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "mlflow>=3.0.0,<4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "build>=1.0.0",
+    "twine>=4.0.0",
+]
+tracking = [
+    "mlflow>=3.0.0,<4.0.0",
+]
+all = [
+    "mlflow>=3.0.0,<4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kladml/kladml"
+Documentation = "https://kladml.github.io/docs"
+Repository = "https://github.com/kladml/kladml.git"
+Issues = "https://github.com/kladml/kladml/issues"
+
+[project.scripts]
+kladml = "kladml.cli.main:app"
+
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/kladml/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
