@@ -45,96 +45,71 @@ my-project/
 
 ## Run Training
 
-### Option 1: Native (Development)
+KladML provides a generic training command that works with any model architecture.
 
-Run directly with your local Python environment:
+### 1. (Optional) Convert Data
 
-```bash
-kladml run native train.py
-```
-
-!!! tip "Best for development"
-    Native mode is fastest for iterating on your code. No Docker required.
-
-### Option 2: Containerized (Reproducibility)
-
-Run inside a Docker/Podman container:
+For large datasets, convert to HDF5 for lazy loading:
 
 ```bash
-kladml run local train.py
+kladml data convert \
+    --input data/datasets/dataset.pkl \
+    --output data/datasets/dataset.h5
 ```
 
-!!! note "GPU Support"
-    For CUDA, use `--device cuda`. The container automatically uses the GPU image.
-    ```bash
-    kladml run local train.py --device cuda
-    ```
+### 2. Train a Model
 
----
+Run a single training experiment:
 
-## Create a Model
+```bash
+kladml train single \
+    --model gluformer \
+    --data data/datasets/dataset.h5 \
+    --project my-project \
+    --experiment baseline
+```
 
-Here's a minimal example:
+- `--model`: Name of the architecture (e.g., `gluformer`) or path to a Python file.
+- `--data`: Path to your training data (PKL or HDF5).
 
-```python
-from kladml import TimeSeriesModel
+### 3. Grid Search
 
-class MyForecaster(TimeSeriesModel):
-    
-    def train(self, X_train, y_train=None, **kwargs):
-        """Train the model. Return metrics dict."""
-        # Your training logic here
-        self.weights = ...
-        return {"loss": 0.1, "epochs": 10}
-    
-    def predict(self, X, **kwargs):
-        """Generate predictions."""
-        return self.weights @ X
-    
-    def evaluate(self, X_test, y_test=None, **kwargs):
-        """Evaluate on test data. Return metrics dict."""
-        predictions = self.predict(X_test)
-        return {"mae": abs(predictions - y_test).mean()}
-    
-    def save(self, path: str):
-        """Save model to directory."""
-        import json
-        with open(f"{path}/weights.json", "w") as f:
-            json.dump(self.weights.tolist(), f)
-    
-    def load(self, path: str):
-        """Load model from directory."""
-        import json
-        with open(f"{path}/weights.json") as f:
-            self.weights = json.load(f)
+Run a grid search over hyperparameters defined in a YAML config:
+
+```bash
+# config.yaml (see documentation for format)
+# ... grid search params ...
+
+kladml train grid \
+    --model gluformer \
+    --config config.yaml \
+    --project my-project \
+    --experiment hyperparam-tuning
 ```
 
 ---
 
-## Use the ExperimentRunner
+## Create Custom Models
 
-The `ExperimentRunner` handles:
+To add your own model architecture:
 
-- Creating MLflow runs
-- Logging parameters and metrics
-- Saving artifacts
-- Managing the training lifecycle
+1. Create a file `my_model.py`
+2. Inherit from `TimeSeriesModel` (or similar base class)
+3. Implement `train`, `predict`, `evaluate`
 
 ```python
-from kladml import ExperimentRunner
+# my_model.py
+from kladml import TimeSeriesModel, MLTask
 
-runner = ExperimentRunner()
+class MyModel(TimeSeriesModel):
+    # ... implementation ...
+    pass
+```
 
-result = runner.run(
-    model_class=MyForecaster,
-    train_data=(X_train, y_train),
-    test_data=(X_test, y_test),
-    experiment_name="my-experiment",
-    params={"learning_rate": 0.01}
-)
+Then train it using the CLI:
 
-print(f"Run ID: {result['run_id']}")
-print(f"Metrics: {result['metrics']}")
+```bash
+kladml train single --model my_model.py --data ...
 ```
 
 ---
@@ -144,7 +119,7 @@ print(f"Metrics: {result['metrics']}")
 KladML uses MLflow for tracking. View your experiments:
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
+mlflow ui --backend-store-uri sqlite:///data/projects/mlflow.db
 ```
 
 Open http://localhost:5000 in your browser.

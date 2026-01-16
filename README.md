@@ -7,7 +7,6 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/kladml)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kladml)
 [![License](https://img.shields.io/github/license/kladml/kladml.svg)](https://github.com/kladml/kladml/blob/main/LICENSE)
-[![Downloads](https://static.pepy.tech/badge/kladml/month)](https://pypi.org/project/kladml/)
 
 `⭐ Star us on GitHub to support the project!`
 
@@ -40,8 +39,12 @@ pip install kladml
 kladml init my-project
 cd my-project
 
-# Run training locally
-kladml run native train.py
+# Train the Gluformer model
+kladml train single \
+    --model gluformer \
+    --data data/datasets/dataset.pkl \
+    --project my-project \
+    --experiment v1
 ```
 
 ### Create Your Model
@@ -154,8 +157,8 @@ export KLADML_STORAGE_ARTIFACTS_DIR=/data/artifacts
 ```bash
 kladml --help                 # Show all commands
 kladml init <name>            # Initialize new project
-kladml run native <script>    # Run with local Python
-kladml run local <script>     # Run in Docker (GPU support)
+kladml train single ...       # Train a model
+kladml data convert ...       # Convert datasets (PKL -> HDF5)
 kladml version                # Show version
 ```
 
@@ -184,6 +187,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **[Documentation](https://docs.klad.ml)** · **[PyPI](https://pypi.org/project/kladml/)** · **[GitHub](https://github.com/kladml/kladml)**
 
-Made with ❤️ by the KladML Team
+Made in 🇮🇹 by the KladML Team
 
 </div>
