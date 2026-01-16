@@ -129,7 +129,92 @@ kladml run local train.py --image my-registry/my-image:latest
 
 ---
 
+
+---
+
+## Training Commands
+
+### `kladml train single`
+
+Train a model on a dataset.
+
+```bash
+kladml train single [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--model`, `-m` | Yes | Model architecture name (e.g., `gluformer`) or path to `.py` file |
+| `--data`, `-d` | Yes | Path to training data (`.pkl` or `.h5`) |
+| `--val` | No | Path to validation data |
+| `--project`, `-p` | Yes | Project name |
+| `--experiment`, `-e` | Yes | Experiment name |
+| `--config`, `-c` | No | Path to YAML config file |
+
+**Example:**
+
+```bash
+kladml train single --model gluformer --data train.h5 --project sentinella --experiment v1
+```
+
+---
+
+### `kladml train grid`
+
+Run a grid search over hyperparameters.
+
+```bash
+kladml train grid [OPTIONS]
+```
+
+The configuration file must define lists of values for grid search.
+
+**Example:**
+
+```bash
+kladml train grid --model gluformer --config grid.yaml --project sentinella --experiment tuning
+```
+
+---
+
+## Data Commands
+
+### `kladml data inspect`
+
+Analyze a `.pkl` dataset file.
+
+```bash
+kladml data inspect <path>
+```
+
+### `kladml data convert`
+
+Convert a dataset to HDF5 format for lazy loading.
+
+```bash
+kladml data convert [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--input`, `-i` | Yes | Input `.pkl` file path |
+| `--output`, `-o` | Yes | Output `.h5` file path |
+| `--compression` | No | Compression (gzip, lzf). Default: gzip |
+
+**Example:**
+
+```bash
+kladml data convert -i train.pkl -o train.h5
+```
+
+---
+
 ## Environment Variables
+
 
 KladML respects these environment variables:
 
