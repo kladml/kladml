@@ -175,3 +175,30 @@ runner = ExperimentRunner(storage=S3Storage("my-bucket"))
 
 - [Architecture](architecture.md) - Model contracts and design patterns
 - [CLI Reference](cli.md) - Command-line interface
+
+---
+
+## Training & Callbacks
+
+Starting from v0.3.0, KladML standardizes the training lifecycle for all models.
+
+### Standard Features
+Every model inheriting from `BaseArchitecture` automatically gets:
+
+1.  **Structured Logging**: Training logs are saved to `data/projects/<project>/<experiment>/<run_id>/training.jsonl`.
+2.  **Automatic Checkpointing**: 
+    - `best_model.pth`: PyTorch state dict (weights + optimizer) for resuming training.
+    - `best_model_jit.pt`: TorchScript artifact optimized for deployment.
+3.  **Metrics Tracking**: Loss and validation metrics are tracked per epoch.
+
+### Configurable Early Stopping
+Early stopping is built-in but fully configurable via your `config.yaml` or run configuration:
+
+```yaml
+early_stopping:
+  enabled: true       # Set to false to disable
+  patience: 10        # Epochs to wait for improvement
+  min_delta: 0.001    # Minimum change to count as improvement
+```
+
+If not specified, defaults are: enabled=True, patience=5.

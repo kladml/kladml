@@ -22,7 +22,7 @@ console = Console()
 
 # Import subcommands
 from kladml.cli import run, project
-from kladml.cli import projects, experiments, train, data
+from kladml.cli import projects, experiments, train, data, models
 
 
 # Register subcommands
@@ -31,6 +31,7 @@ app.add_typer(experiments.app, name="experiment", help="Manage experiments")
 app.add_typer(train.app, name="train", help="Train models")
 app.add_typer(run.app, name="run", help="Run scripts and manage runs")
 app.add_typer(data.app, name="data", help="Inspect and analyze datasets")
+app.add_typer(models.app, name="models", help="Manage and export models")
 
 
 @app.command()
