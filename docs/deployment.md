@@ -68,3 +68,81 @@ int main() {
 ## Supported Architectures
 
 - **Gluformer**: Fully supported. Wraps inputs to `[Batch, 60, 1]` and handles decoder inputs automatically.
+
+---
+
+## 🔮 Understanding Output: Aleatoric Uncertainty
+
+The model outputs two tensors:
+1.  **`pred_mean`**: The predicted glucose value.
+2.  **`pred_logvar`**: The predicted **Log-Variance** of the error.
+
+This represents **Aleatoric Uncertainty** (data noise). The model is saying: *"I predict X, but I'm Y% unsure because the input data is noisy/ambiguous."*
+
+### Converting Log-Variance to Confidence Intervals
+
+To get the Standard Deviation ($\sigma$) and 95% Confidence Interval ($CI$):
+
+$$ \sigma = \sqrt{\exp(\text{logvar})} $$
+$$ CI_{95\%} = [\text{mean} - 1.96\sigma, \text{mean} + 1.96\sigma] $$
+
+> [!TIP]
+> Always assume Gaussian distribution for the error.
+
+---
+
+## 💻 Visualization in React (Frontend)
+
+To visualize the prediction with its uncertainty "cloud", you can use libraries like **Recharts**.
+
+### 1. Data Processing (JavaScript)
+
+```javascript
+// Function to process model output
+const processPredictions = (means, logvars) => {
+  return means.map((mean, i) => {
+    const logvar = logvars[i];
+    const sigma = Math.sqrt(Math.exp(logvar));
+    
+    return {
+      timestamp: Date.now() + i * 5 * 60 * 1000, // +5 mins per step
+      glucose: mean,
+      range: [mean - 1.96 * sigma, mean + 1.96 * sigma] // [Low, High]
+    };
+  });
+};
+```
+
+### 2. React Component (Recharts)
+
+Displaying the confidence interval as an `Area` behind the `Line`.
+
+```jsx
+import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip } from 'recharts';
+
+const GlucoseChart = ({ data }) => (
+  <ComposedChart width={600} height={300} data={data}>
+    <XAxis dataKey="timestamp" tickFormatter={(t) => new Date(t).toLocaleTimeString()} />
+    <YAxis domain={['auto', 'auto']} />
+    <Tooltip />
+    
+    {/* Confidence Interval (Gray Cloud) */}
+    <Area 
+      type="monotone" 
+      dataKey="range" 
+      fill="#8884d8" 
+      stroke="#8884d8" 
+      opacity={0.3} 
+    />
+    
+    {/* Predicted Value (Solid Line) */}
+    <Line 
+      type="monotone" 
+      dataKey="glucose" 
+      stroke="#8884d8" 
+      strokeWidth={3} 
+      dot={false} 
+    />
+  </ComposedChart>
+);
+```
