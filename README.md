@@ -40,6 +40,7 @@ kladml init my-project
 cd my-project
 
 # Train the Gluformer model
+# See src/kladml/architectures/gluformer/GLUFORMER_ARCHITECTURE.md for details
 kladml train single \
     --model gluformer \
     --data data/datasets/dataset.pkl \

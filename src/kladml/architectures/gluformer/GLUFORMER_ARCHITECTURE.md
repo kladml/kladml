@@ -220,3 +220,83 @@ Questo permette decisioni cliniche informate: intervenire solo quando la previsi
 ---
 
 *Implementazione Netcaring basata sul lavoro originale dell'Università del Michigan, adattata per il progetto Sentinella.*
+
+---
+
+## Deployment & Visualizzazione (Frontend)
+
+Quando esporti il modello per il deployment (es. `best_model_jit.pt`), devi gestire correttamente l'output probabilistico nel frontend.
+
+### 1. Output del Modello (JIT)
+
+Il modello esportato restituisce due tensori:
+
+1.  **`pred_mean`**: La previsione puntuale del glucosio.
+2.  **`pred_logvar`**: La **Log-Varianza** dell'errore (Incertezza Aleatoria).
+
+### 2. Calcolo Intervallo di Confidenza
+
+Per visualizzare la "nuvola" di incertezza, converti la log-varianza in deviazione standard ($\sigma$) e calcola l'intervallo al 95%:
+
+$$ \sigma = \sqrt{\exp(\text{logvar})} $$
+$$ CI_{95\%} = [\text{mean} - 1.96\sigma, \text{mean} + 1.96\sigma] $$
+
+### 3. Esempio Implementazione (React + Recharts)
+
+Ecco come visualizzare i dati in un'applicazione React:
+
+#### Data Processing (JavaScript)
+
+```javascript
+const processPredictions = (means, logvars) => {
+  return means.map((mean, i) => {
+    const logvar = logvars[i];
+    const sigma = Math.sqrt(Math.exp(logvar));
+    
+    // Time: ogni step è +5 minuti
+    const timestamp = Date.now() + i * 5 * 60 * 1000;
+    
+    return {
+      timestamp,
+      glucose: mean,
+      // Range per Area chart: [Low, High]
+      range: [mean - 1.96 * sigma, mean + 1.96 * sigma]
+    };
+  });
+};
+```
+
+#### Componente Grafico
+
+```jsx
+import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip } from 'recharts';
+
+const GlucoseChart = ({ data }) => (
+  <ComposedChart width={600} height={300} data={data}>
+    <XAxis 
+      dataKey="timestamp" 
+      tickFormatter={(t) => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} 
+    />
+    <YAxis domain={['auto', 'auto']} unit=" mg/dL" />
+    <Tooltip />
+    
+    {/* Nuvola di Incertezza (Grigia/Viola chiaro) */}
+    <Area 
+      type="monotone" 
+      dataKey="range" 
+      stroke="none"
+      fill="#8884d8" 
+      opacity={0.2} 
+    />
+    
+    {/* Linea di Previsione (Solida) */}
+    <Line 
+      type="monotone" 
+      dataKey="glucose" 
+      stroke="#8884d8" 
+      strokeWidth={3} 
+      dot={false} 
+    />
+  </ComposedChart>
+);
+```
