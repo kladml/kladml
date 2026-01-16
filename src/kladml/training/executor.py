@@ -151,6 +151,7 @@ class LocalTrainingExecutor:
     def execute_single(
         self,
         data_path: str,
+        val_path: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
         run_name: Optional[str] = None,
     ) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
@@ -159,6 +160,7 @@ class LocalTrainingExecutor:
         
         Args:
             data_path: Path to training data (resolved relative to data/datasets/ if not absolute)
+            val_path: Optional path to validation data
             params: Parameters for this run
             run_name: Optional custom run name
             
@@ -168,7 +170,10 @@ class LocalTrainingExecutor:
         params = params or {}
         run_name = run_name or self._semantic_run_name(params, 1, 1)
         
+        run_name = run_name or self._semantic_run_name(params, 1, 1)
+        
         resolved_data_path = str(resolve_dataset_path(data_path))
+        resolved_val_path = str(resolve_dataset_path(val_path)) if val_path else None
         
         # Also resolve preprocessor if present in params/config
         # Note: params override config
@@ -178,13 +183,16 @@ class LocalTrainingExecutor:
              params["preprocessor"] = str(prep_path)
              # Update merged config implicitly in _execute_single_run but good to have explicit resolve logic here if needed
         
-        return self._execute_single_run(resolved_data_path, params, run_name)
+             # Update merged config implicitly in _execute_single_run but good to have explicit resolve logic here if needed
+        
+        return self._execute_single_run(resolved_data_path, params, run_name, val_path=resolved_val_path)
     
     def _execute_single_run(
         self,
         data_path: str,
         params: Dict[str, Any],
         run_name: str,
+        val_path: Optional[str] = None,
     ) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
         """
         Internal method to execute a single run.
@@ -194,6 +202,8 @@ class LocalTrainingExecutor:
         # Merge base config with run-specific params
         run_config = {**self.config, **params}
         run_config["data_path"] = data_path
+        if val_path:
+            run_config["val_path"] = val_path
         
         # Resolve 'preprocessor' in config if likely a file path
         if "preprocessor" in run_config:
@@ -227,8 +237,9 @@ class LocalTrainingExecutor:
         
         try:
             # Instantiate and train model
-            model = self.model_class(**run_config)
-            metrics = model.train(run_config.get("X_train"), run_config.get("y_train"))
+            # BaseArchitecture expects a 'config' dictionary
+            model = self.model_class(config=run_config)
+            metrics = model.train(X_train=data_path, X_val=val_path, **run_config)
             
             # Ensure metrics is a dict
             if not isinstance(metrics, dict):

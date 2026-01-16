@@ -78,10 +78,22 @@ dmypy.json
 mlruns/
 mlflow.db
 
-# KladML local data
-kladml_data/
-artifacts/
-scripts/
+# KladML local data and outputs
+/data/
+/artifacts/
+/scripts/
+
+# Training outputs (will be in data/ after cleanup)
+data/projects/
+data/models/
+data/logs/
+projects/
+models/
+*.log
+
+# Generated version file
+src/kldml/_version.py
+src/kladml/_version.py
 
 # OS
 .DS_Store
