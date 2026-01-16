@@ -5,6 +5,7 @@ Uses TrackerInterface for MLflow interaction.
 """
 
 import typer
+import importlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -25,7 +26,7 @@ console = Console()
 tracker: TrackerInterface = LocalTracker()
 
 
-def _load_model_class(model_path: str):
+def _load_model_class_from_path(model_path: str):
     """Dynamically load a model class."""
     path = Path(model_path)
     if not path.exists():
@@ -52,6 +53,61 @@ def _load_model_class(model_path: str):
     raise ValueError(f"No model class found in {model_path}.")
 
 
+def _resolve_model_class(model_identifier: str):
+    """
+    Resolve model class from identifier (name or path).
+    
+    Args:
+        model_identifier: Model name (e.g. "gluformer") or path to .py file
+        
+    Returns:
+        Model class
+    """
+    # 1. Try loading as file path
+    if model_identifier.endswith(".py") or Path(model_identifier).exists():
+        return _load_model_class_from_path(model_identifier)
+        
+    # 2. Try loading as architecture name
+    try:
+        # Import module: kladml.architectures.{name}
+        module_path = f"kladml.architectures.{model_identifier}"
+        try:
+            module = importlib.import_module(module_path)
+        except ImportError:
+             raise ValueError(f"Architecture '{model_identifier}' not found in kladml.architectures")
+
+        from kladml.base import BaseArchitecture
+        
+        # Check module's __init__ for a subclass of BaseArchitecture
+        for name in dir(module):
+            obj = getattr(module, name)
+            if (
+                isinstance(obj, type) 
+                and issubclass(obj, BaseArchitecture) 
+                and obj is not BaseArchitecture
+            ):
+                return obj
+                
+        # If not found in __init__, try .model submodule
+        try:
+            model_submodule = importlib.import_module(f"{module_path}.model")
+            for name in dir(model_submodule):
+                obj = getattr(model_submodule, name)
+                if (
+                    isinstance(obj, type) 
+                    and issubclass(obj, BaseArchitecture) 
+                    and obj is not BaseArchitecture
+                ):
+                    return obj
+        except ImportError:
+            pass
+            
+        raise ValueError(f"No BaseArchitecture subclass found in {module_path}")
+        
+    except Exception as e:
+        raise ValueError(f"Could not load model '{model_identifier}': {e}")
+
+
 def _load_yaml_config(config_path: str) -> dict:
     """Load configuration from YAML file."""
     import yaml
@@ -61,8 +117,9 @@ def _load_yaml_config(config_path: str) -> dict:
 
 @app.command("single")
 def train_single(
-    model: str = typer.Argument(..., help="Path to model Python file"),
+    model: str = typer.Option(..., "--model", "-m", help="Model name (e.g. 'gluformer') or path to .py file"),
     data: str = typer.Option(..., "--data", "-d", help="Path to training data"),
+    val_data: Optional[str] = typer.Option(None, "--val", "-v", help="Path to validation data"),
     project: str = typer.Option(..., "--project", "-p", help="Project name"),
     experiment: str = typer.Option(..., "--experiment", "-e", help="Experiment name"),
     config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to YAML config"),
@@ -75,7 +132,7 @@ def train_single(
     console.print(f"Project: {project} / Experiment: {experiment}")
     
     try:
-        model_class = _load_model_class(model)
+        model_class = _resolve_model_class(model)
         console.print(f"Loaded model: [green]{model_class.__name__}[/green]")
     except Exception as e:
         console.print(f"[red]Error loading model:[/red] {e}")
@@ -107,7 +164,7 @@ def train_single(
     
     console.print("\n[bold]Starting training...[/bold]\n")
     
-    run_id, metrics = executor.execute_single(data_path=data)
+    run_id, metrics = executor.execute_single(data_path=data, val_path=val_data)
     
     if run_id:
         console.print(f"\n[green]✓ Training complete![/green]")
@@ -121,7 +178,7 @@ def train_single(
 
 @app.command("grid")
 def train_grid_search(
-    model: str = typer.Argument(..., help="Path to model Python file"),
+    model: str = typer.Option(..., "--model", "-m", help="Model name or path to .py file"),
     data: str = typer.Option(..., "--data", "-d", help="Path to training data"),
     project: str = typer.Option(..., "--project", "-p", help="Project name"),
     experiment: str = typer.Option(..., "--experiment", "-e", help="Experiment name"),
@@ -133,7 +190,7 @@ def train_grid_search(
     console.print(f"[bold]Grid Search Training: {model}[/bold]")
     
     try:
-        model_class = _load_model_class(model)
+        model_class = _resolve_model_class(model)
         console.print(f"Loaded model: [green]{model_class.__name__}[/green]")
     except Exception as e:
         console.print(f"[red]Error loading model:[/red] {e}")
