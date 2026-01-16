@@ -160,45 +160,7 @@ class GluformerModel(TimeSeriesModel):
         
         return self._model
     
-    def _init_callbacks(self, run_id: str) -> CallbackList:
-        """Initialize training callbacks."""
-        self._run_id = run_id
-        
-        # Project logger: logs to data/projects/<project>/<experiment>/<run_id>.jsonl
-        self._project_logger = ProjectLogger(
-            project_name=self.project_name,
-            experiment_name=self.experiment_name,
-            run_id=run_id,
-            projects_dir="./data/projects",
-            log_format="jsonl",
-        )
-        
-        # Checkpoint manager: saves to data/projects/<project>/<experiment>/checkpoints/<run_id>/
-        self._checkpoint_manager = CheckpointManager(
-            project_name=self.project_name,
-            experiment_name=self.experiment_name,
-            run_id=run_id,
-            base_dir="./data/projects",
-            checkpoint_frequency=5,
-        )
-        
-        # Early stopping
-        early_stopping = EarlyStoppingCallback(
-            patience=self.patience,
-            metric="val_loss",
-            mode="min",
-        )
-        
-        # Metrics collector
-        metrics_cb = MetricsCallback()
-        
-        self._callbacks = CallbackList([
-            self._project_logger,
-            early_stopping,
-            metrics_cb,
-        ])
-        
-        return self._callbacks
+
     
     def train(
         self, 
@@ -229,15 +191,17 @@ class GluformerModel(TimeSeriesModel):
         
         # Generate run ID (sequential + timestamp)
         run_id = generate_run_id(self.project_name, self.experiment_name)
+        self._run_id = run_id
         
-        # Initialize callbacks
-        callbacks = self._init_callbacks(run_id)
+        # Initialize callbacks (Standardized)
+        self._init_standard_callbacks(run_id, self.project_name, self.experiment_name)
+        self._callbacks = self._callbacks_list # Alias for compatibility
         
         # Build model
         model = self._build_model()
         
         # Log training start
-        callbacks.on_train_begin({
+        self._callbacks.on_train_begin({
             "project": self.project_name,
             "experiment": self.experiment_name,
             "run_id": run_id,
@@ -265,11 +229,10 @@ class GluformerModel(TimeSeriesModel):
         metrics = {}
         
         for epoch in range(self.epochs):
-            callbacks.on_epoch_begin(epoch, {"epoch": epoch})
+            self._callbacks.on_epoch_begin(epoch, {"epoch": epoch})
             
             # Check early stopping
-            early_stopping = self._callbacks.callbacks[1]  # EarlyStoppingCallback
-            if early_stopping.should_stop:
+            if self._early_stopping and self._early_stopping.should_stop:
                 self._project_logger.info(f"Early stopping at epoch {epoch}")
                 break
             
@@ -283,7 +246,7 @@ class GluformerModel(TimeSeriesModel):
             train_losses = []
             
             for batch_idx, batch in enumerate(train_loader):
-                callbacks.on_batch_begin(batch_idx)
+                self._callbacks.on_batch_begin(batch_idx)
                 
                 x_enc = batch['x_enc'].to(self.device)
                 x_id = batch['x_id'].to(self.device)
@@ -339,7 +302,7 @@ class GluformerModel(TimeSeriesModel):
                     scaler=self._scaler,  # Include scaler for inference
                 )
             
-            callbacks.on_epoch_end(epoch, epoch_metrics)
+            self._callbacks.on_epoch_end(epoch, epoch_metrics)
             
             # Log progress
             log_msg = f"Epoch {epoch+1}/{self.epochs} [{phase}] | Train: {avg_train_loss:.4f}"
@@ -354,7 +317,7 @@ class GluformerModel(TimeSeriesModel):
             "epochs_trained": epoch + 1,
         }
         
-        callbacks.on_train_end(metrics)
+        self._callbacks.on_train_end(metrics)
         
         # Load best model
         if self._checkpoint_manager.best_epoch is not None:
@@ -364,6 +327,15 @@ class GluformerModel(TimeSeriesModel):
                 device=str(self.device),
             )
             self._project_logger.info(f"Restored best model from epoch {self._checkpoint_manager.best_epoch}")
+            
+            # --- AUTO EXPORT FOR DEPLOYMENT ---
+            try:
+                deploy_path = self._checkpoint_manager.checkpoint_dir / "best_model_jit.pt"
+                
+                self._project_logger.info(f"Auto-exporting deployment model to {deploy_path}...")
+                self.export_model(str(deploy_path), format="torchscript")
+            except Exception as e:
+                self._project_logger.error(f"Auto-export failed: {e}")
         
         self._is_trained = True
         
@@ -602,6 +574,27 @@ class GluformerModel(TimeSeriesModel):
         else:
             logger.warning("No checkpoint manager - model not saved")
     
+    def export_model(self, path: str, format: str = "torchscript", **kwargs) -> None:
+        """Export Gluformer to TorchScript for deployment."""
+        if format != "torchscript":
+            raise NotImplementedError(f"Export format '{format}' not supported. Use 'torchscript'.")
+            
+        try:
+            from kladml.architectures.gluformer.deployment import export_to_torchscript
+            
+            logger.info(f"Exporting Deployment model to {path}...")
+            export_to_torchscript(
+                model=self._model,
+                output_path=path,
+                scaler=self._scaler,
+                seq_len=self.seq_len,
+                pred_len=self.pred_len,
+                label_len=self.label_len
+            )
+        except Exception as e:
+            logger.error(f"Deployment export failed: {e}")
+            raise
+
     def load(self, path: str) -> None:
         """Load model from checkpoint."""
         import torch

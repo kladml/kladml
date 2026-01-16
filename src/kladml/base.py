@@ -126,6 +126,94 @@ class BaseArchitecture(ABC):
     def fit(self, *args, **kwargs):
         """Alias for train()."""
         return self.train(*args, **kwargs)
+        
+    def export_model(self, path: str, format: str = "torchscript", **kwargs) -> None:
+        """
+        Export the model for deployment.
+        
+        Args:
+            path: Output path for the exported model.
+            format: Export format (default: "torchscript").
+            **kwargs: Additional export parameters.
+            
+        Raises:
+            NotImplementedError: If the architecture does not support export.
+        """
+        raise NotImplementedError(f"Export not implemented for {self.__class__.__name__}")
+
+    def _init_standard_callbacks(self, run_id: str, project_name: str, experiment_name: str) -> None:
+        """
+        Initialize standard training callbacks (Logging, Checkpoint, EarlyStopping).
+        
+        Args:
+            run_id: Unique run identifier.
+            project_name: Name of the project.
+            experiment_name: Name of the experiment.
+        """
+        from kladml.training.callbacks import ProjectLogger, EarlyStoppingCallback, MetricsCallback, CallbackList
+        from kladml.training.checkpoint import CheckpointManager
+        
+        callbacks = []
+        
+        # 1. Project Logger
+        self._project_logger = ProjectLogger(
+            project_name=project_name,
+            experiment_name=experiment_name,
+            run_id=run_id,
+            projects_dir="./data/projects",
+        )
+        callbacks.append(self._project_logger)
+        
+        # 2. Checkpoint Manager
+        self._checkpoint_manager = CheckpointManager(
+            project_name=project_name,
+            experiment_name=experiment_name,
+            run_id=run_id,
+            base_dir="./data/projects",
+            checkpoint_frequency=self.config.get("checkpoint_frequency", 5),
+        )
+        # Note: CheckpointManager is not a Callback subclass in current implementation?
+        # Let's check. If it's not, we don't append it to callbacks list but use it manually.
+        # However, usually we want a CheckpointCallback that wraps the manager.
+        # GluformerModel uses CheckpointManager manually in train loop.
+        # To standardize, we should use a CheckpointCallback if possible, or keep manual usage but standard init.
+        # For now, we just init it here.
+        
+        # 3. Early Stopping (Pluggable)
+        es_nested = self.config.get("early_stopping", {})
+        if isinstance(es_nested, dict) and "enabled" in es_nested:
+            es_enabled = es_nested["enabled"]
+        else:
+            es_enabled = self.config.get("early_stopping_enabled", True)
+        
+        if es_enabled:
+            # Patience defaults
+            if isinstance(es_nested, dict) and "patience" in es_nested:
+                patience = es_nested["patience"]
+            else:
+                patience = self.config.get("early_stopping_patience", 5)
+            
+            # Min Delta defaults
+            if isinstance(es_nested, dict) and "min_delta" in es_nested:
+                min_delta = es_nested["min_delta"]
+            else:
+                min_delta = self.config.get("early_stopping_min_delta", 0.0)
+            
+            self._early_stopping = EarlyStoppingCallback(
+                patience=patience,
+                metric="val_loss",
+                mode="min",
+                min_delta=min_delta
+            )
+            callbacks.append(self._early_stopping)
+        else:
+            self._early_stopping = None
+            
+        # 4. Metrics
+        self._metrics_callback = MetricsCallback()
+        callbacks.append(self._metrics_callback)
+        
+        self._callbacks_list = CallbackList(callbacks)
 
 
 class BasePreprocessor(ABC):

@@ -162,14 +162,14 @@ class CheckpointManager:
         
         # Save periodic checkpoint
         if should_save_periodic:
-            path = self.checkpoint_dir / f"checkpoint_epoch_{epoch}.pth"
+            path = self.checkpoint_dir / f"checkpoint_epoch_{epoch}.pt"
             torch.save(checkpoint, path)
             logger.info(f"Saved checkpoint: {path}")
             saved_path = str(path)
         
         # Save best model
         if is_best:
-            best_path = self.checkpoint_dir / "best_model.pth"
+            best_path = self.checkpoint_dir / "best_model.pt"
             torch.save(checkpoint, best_path)
             self._best_metric = current_metric
             self._best_epoch = epoch
@@ -207,15 +207,15 @@ class CheckpointManager:
         
         # Determine checkpoint path
         if checkpoint_type == "best":
-            path = self.checkpoint_dir / "best_model.pth"
+            path = self.checkpoint_dir / "best_model.pt"
         elif checkpoint_type == "latest":
             # Find latest checkpoint by epoch number
-            checkpoints = list(self.checkpoint_dir.glob("checkpoint_epoch_*.pth"))
+            checkpoints = list(self.checkpoint_dir.glob("checkpoint_epoch_*.pt"))
             if not checkpoints:
                 raise FileNotFoundError("No checkpoints found")
             path = max(checkpoints, key=lambda p: int(p.stem.split("_")[-1]))
         elif checkpoint_type == "epoch" and epoch is not None:
-            path = self.checkpoint_dir / f"checkpoint_epoch_{epoch}.pth"
+            path = self.checkpoint_dir / f"checkpoint_epoch_{epoch}.pt"
         else:
             raise ValueError(f"Invalid checkpoint_type: {checkpoint_type}")
         
@@ -240,7 +240,7 @@ class CheckpointManager:
         checkpoints = []
         
         # Best model
-        best_path = self.checkpoint_dir / "best_model.pth"
+        best_path = self.checkpoint_dir / "best_model.pt"
         if best_path.exists():
             checkpoints.append({
                 "type": "best",
@@ -250,7 +250,7 @@ class CheckpointManager:
             })
         
         # Periodic checkpoints
-        for path in sorted(self.checkpoint_dir.glob("checkpoint_epoch_*.pth")):
+        for path in sorted(self.checkpoint_dir.glob("checkpoint_epoch_*.pt")):
             epoch = int(path.stem.split("_")[-1])
             checkpoints.append({
                 "type": "periodic",
