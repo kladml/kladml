@@ -105,6 +105,8 @@ class ProjectLogger(Callback):
         run_id: str,
         projects_dir: str = "./data/projects",
         log_format: str = "jsonl",  # "jsonl" or "text"
+        console_output: bool = True,  # Also print to console
+        family_name: Optional[str] = None,
     ):
         """
         Initialize project logger.
@@ -115,16 +117,25 @@ class ProjectLogger(Callback):
             run_id: Unique run identifier
             projects_dir: Base directory for projects (default: ./projects)
             log_format: "jsonl" for JSON lines, "text" for plain text
+            family_name: Optional family name for hierarchy
         """
         self.project_name = project_name
         self.experiment_name = experiment_name
         self.run_id = run_id
         self.projects_dir = Path(projects_dir)
         self.log_format = log_format
+        self.console_output = console_output
+        self.family_name = family_name
         
         # Create log directory
-        # New structure: projects/<project>/<experiment>/<run_id>/
-        self.log_dir = self.projects_dir / project_name / experiment_name / run_id
+        # New structure: projects/<project>/[<family>/]<experiment>/<run_id>/
+        path_parts = [project_name]
+        if family_name:
+            path_parts.append(family_name)
+        path_parts.append(experiment_name)
+        path_parts.append(run_id)
+        
+        self.log_dir = self.projects_dir.joinpath(*path_parts)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
         # Log file path
@@ -168,12 +179,27 @@ class ProjectLogger(Callback):
             if data:
                 entry["data"] = data
             self._file_handle.write(json.dumps(entry) + "\n")
+            
+            # Console output (human-readable format)
+            if self.console_output and level != "debug":
+                console_line = f"[{timestamp[:19]}] [{level.upper():5}] {message}"
+                if data:
+                    # Show only key metrics, not full data dict
+                    summary = ", ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}" 
+                                        for k, v in data.items() if k in ['loss', 'train_loss', 'val_loss', 'phase', 'epoch'])
+                    if summary:
+                        console_line += f" | {summary}"
+                print(console_line, flush=True)
         else:
             # Plain text format
             line = f"[{timestamp}] [{level.upper()}] {message}"
             if data:
                 line += f" | {data}"
             self._file_handle.write(line + "\n")
+            
+            # Console output
+            if self.console_output and level != "debug":
+                print(line, flush=True)
     
     def info(self, message: str, data: Optional[Dict] = None) -> None:
         """Log info message."""

@@ -155,12 +155,16 @@ class BaseArchitecture(ABC):
         
         callbacks = []
         
+        # Get family name if available
+        family_name = self.config.get("family_name")
+        
         # 1. Project Logger
         self._project_logger = ProjectLogger(
             project_name=project_name,
             experiment_name=experiment_name,
             run_id=run_id,
             projects_dir="./data/projects",
+            family_name=family_name,
         )
         callbacks.append(self._project_logger)
         
@@ -171,6 +175,7 @@ class BaseArchitecture(ABC):
             run_id=run_id,
             base_dir="./data/projects",
             checkpoint_frequency=self.config.get("checkpoint_frequency", 5),
+            family_name=family_name,
         )
         # Note: CheckpointManager is not a Callback subclass in current implementation?
         # Let's check. If it's not, we don't append it to callbacks list but use it manually.
