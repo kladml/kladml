@@ -163,16 +163,17 @@ class LocalTracker(TrackerInterface):
         self, 
         experiment_name: str, 
         run_name: Optional[str] = None,
+        run_id: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None
     ) -> str:
-        """Start a new tracking run."""
+        """Start a new tracking run, optionally with a custom run_id."""
         mlflow = self._ensure_mlflow()
         
         # Set or create experiment
         mlflow.set_experiment(experiment_name)
         
-        # Start run
-        self._active_run = mlflow.start_run(run_name=run_name, tags=tags)
+        # Start run - MLflow supports passing run_id to resume/create with specific ID
+        self._active_run = mlflow.start_run(run_id=run_id, run_name=run_name, tags=tags)
         
         return self._active_run.info.run_id
     
@@ -262,7 +263,7 @@ class NoOpTracker(TrackerInterface):
     def get_run(self, run_id): return None
 
     # Logging stubs
-    def start_run(self, experiment_name, run_name=None, tags=None): return "noop-run-id"
+    def start_run(self, experiment_name, run_name=None, run_id=None, tags=None): return run_id or "noop-run-id"
     def end_run(self, status="FINISHED"): pass
     def log_param(self, key, value): pass
     def log_params(self, params): pass

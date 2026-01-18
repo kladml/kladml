@@ -64,6 +64,7 @@ class TrackerInterface(ABC):
         self, 
         experiment_name: str, 
         run_name: Optional[str] = None,
+        run_id: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None
     ) -> str:
         """
@@ -72,6 +73,7 @@ class TrackerInterface(ABC):
         Args:
             experiment_name: Name of the experiment
             run_name: Optional name for this run
+            run_id: Optional custom run ID (if provided, uses this instead of generating)
             tags: Optional tags for the run
             
         Returns:
