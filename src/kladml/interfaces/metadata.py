@@ -29,8 +29,26 @@ class FamilyDTO:
     experiment_names: List[str]
     created_at: datetime
 
+@dataclass
+class DatasetDTO:
+    id: str
+    name: str
+    path: str
+    description: Optional[str]
+    created_at: datetime
+
 class MetadataInterface(ABC):
     """Abstract interface for metadata management."""
+    
+    @abstractmethod
+    def create_dataset(self, name: str, path: str, description: Optional[str] = None) -> DatasetDTO:
+        """Create a new dataset."""
+        pass
+
+    @abstractmethod
+    def list_datasets(self) -> List[DatasetDTO]:
+        """List all datasets."""
+        pass
     
     # Project Methods
     @abstractmethod
@@ -77,4 +95,9 @@ class MetadataInterface(ABC):
     @abstractmethod
     def add_experiment_to_family(self, family_name: str, project_name: str, experiment_name: str) -> None:
         """Add an experiment name to a family."""
+        pass
+
+    @abstractmethod
+    def remove_experiment_from_family(self, family_name: str, project_name: str, experiment_name: str) -> None:
+        """Remove an experiment name from a family."""
         pass

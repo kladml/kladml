@@ -19,6 +19,37 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())[:8]
 
 
+class Dataset(Base):
+    """
+    Dataset model.
+    
+    Represents a dataset stored in data/datasets/.
+    
+    Attributes:
+        id: Unique identifier
+        name: Dataset name (directory name)
+        path: Relative path from workspace root
+        description: Optional description
+        created_at: Creation timestamp
+    """
+    __tablename__ = "local_datasets"
+    
+    id: str = Column(String(8), primary_key=True, default=generate_uuid)
+    name: str = Column(String(255), unique=True, nullable=False, index=True)
+    path: str = Column(String(512), nullable=False)
+    description: Optional[str] = Column(Text, nullable=True)
+    created_at: datetime = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "path": self.path,
+            "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class Project(Base):
     """
     Project model.
