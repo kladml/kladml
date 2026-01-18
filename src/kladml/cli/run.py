@@ -7,14 +7,11 @@ from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 
-from kladml.interfaces import TrackerInterface
-from kladml.backends.local_tracker import LocalTracker
+# NOTE: Heavy imports (interfaces, backends) are done inside functions
+# for faster CLI startup time
 
 app = typer.Typer()
 console = Console()
-
-# Tracker for validation
-tracker: TrackerInterface = LocalTracker()
 
 
 @app.command("local")

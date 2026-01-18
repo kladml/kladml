@@ -35,17 +35,25 @@ pip install kladml
 ## Quick Start
 
 ```bash
-# Initialize a project
-kladml init my-project
-cd my-project
+# Initialize workspace
+kladml init
 
-# Train the Gluformer model
-# See src/kladml/architectures/gluformer/GLUFORMER_ARCHITECTURE.md for details
-kladml train single \
-    --model gluformer \
-    --data data/datasets/dataset.pkl \
-    --project my-project \
-    --experiment v1
+# Quick training (no database setup required)
+kladml train quick \
+    --config data/configs/my_config.yaml \
+    --train data/datasets/train.pkl \
+    --val data/datasets/val.pkl
+
+# Evaluate a trained model
+kladml eval run \
+    --checkpoint path/to/best_model_jit.pt \
+    --data data/datasets/test.pkl
+
+# Resume interrupted training
+kladml train quick \
+    --config data/configs/my_config.yaml \
+    --train data/datasets/train.pkl \
+    --resume
 ```
 
 ### Create Your Model
@@ -157,10 +165,28 @@ export KLADML_STORAGE_ARTIFACTS_DIR=/data/artifacts
 
 ```bash
 kladml --help                 # Show all commands
-kladml init <name>            # Initialize new project
-kladml train single ...       # Train a model
-kladml data convert ...       # Convert datasets (PKL -> HDF5)
+kladml init                   # Initialize workspace
 kladml version                # Show version
+
+# Training
+kladml train quick ...        # Quick training (no DB setup)
+kladml train single ...       # Full training with project/experiment
+
+# Evaluation
+kladml eval run ...           # Evaluate a model
+kladml eval info              # Show available evaluators
+
+# Data
+kladml data inspect <path>    # Analyze a dataset
+kladml data summary <dir>     # Summary of datasets in directory
+kladml data convert ...       # Convert PKL -> HDF5
+
+# Models
+kladml models export ...      # Export to TorchScript
+
+# Organization
+kladml project list           # List all projects
+kladml experiment list ...    # List experiments
 ```
 
 ---

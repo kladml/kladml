@@ -25,11 +25,12 @@ class GluformerDeploymentWrapper(nn.Module):
         pred_len: Prediction horizon (default: 12)
     """
     
-    def __init__(self, model: nn.Module, label_len: int = 48, pred_len: int = 12):
+    def __init__(self, model: nn.Module, label_len: int = 48, pred_len: int = 12, temperature: float = 1.0):
         super().__init__()
         self.model = model
         self.label_len = label_len
         self.pred_len = pred_len
+        self.temperature = temperature
         
         # Ensure model is in eval mode
         self.model.eval()
@@ -86,7 +87,16 @@ class GluformerDeploymentWrapper(nn.Module):
         # self.model(x_id, x_enc, x_mark_enc, x_dec, x_mark_dec)
         pred_mean, pred_logvar = self.model(x_id, x_enc, x_mark_enc, x_dec, x_mark_dec)
         
-        return pred_mean, pred_logvar
+        # 5. Temperature Scaling for calibration
+        # Temperature adjusts variance: var_adjusted = var_original / temperature
+        # In log space: logvar_adjusted = logvar - log(temperature)
+        # temperature < 1 => subtract negative => logvar increases => wider CI
+        # temperature > 1 => subtract positive => logvar decreases => narrower CI
+        import math
+        log_temp = math.log(self.temperature) if self.temperature > 0 else 0.0
+        pred_logvar_scaled = pred_logvar - log_temp
+        
+        return pred_mean, pred_logvar_scaled
 
 
 def export_to_torchscript(
@@ -96,6 +106,7 @@ def export_to_torchscript(
     seq_len: int = 60,
     pred_len: int = 12,
     label_len: int = 48,
+    temperature: float = 1.0,
 ) -> None:
     """
     Export Gluformer model to TorchScript (.pt) for deployment.
@@ -107,6 +118,7 @@ def export_to_torchscript(
         seq_len: Input sequence length
         pred_len: Prediction length
         label_len: Decoder label length
+        temperature: Calibration temperature for logvar scaling (< 1 = wider CI)
     """
     try:
         # 1. Prepare Metadata (Extra Files)
@@ -126,6 +138,10 @@ def export_to_torchscript(
             logger.warning("No scaler provided. Embedding defaults (0.0, 1.0).")
             extra_files["scaler_mean"] = b"0.0"
             extra_files["scaler_scale"] = b"1.0"
+        
+        # Add temperature to metadata
+        extra_files["temperature"] = str(temperature).encode('utf-8')
+        logger.info(f"Embedding temperature: {temperature}")
             
         # 2. Wrap Model
         # Ensure CPU
@@ -135,7 +151,8 @@ def export_to_torchscript(
         deploy_model = GluformerDeploymentWrapper(
             model=model,
             label_len=label_len,
-            pred_len=pred_len
+            pred_len=pred_len,
+            temperature=temperature
         )
         deploy_model.eval()
         
