@@ -41,6 +41,7 @@ class CheckpointManager:
         run_id: Optional[str] = None,
         base_dir: str = "./data/projects",
         checkpoint_frequency: int = 5,
+        family_name: Optional[str] = None,
     ):
         """
         Initialize checkpoint manager.
@@ -51,20 +52,26 @@ class CheckpointManager:
             run_id: Run identifier (if provided, creates per-run directory)
             base_dir: Base directory for projects (default: ./data/projects)
             checkpoint_frequency: Save checkpoint every N epochs
+            family_name: Optional family name for hierarchy
         """
         self.project_name = project_name
         self.experiment_name = experiment_name
         self.run_id = run_id
         self.base_dir = Path(base_dir)
         self.checkpoint_frequency = checkpoint_frequency
+        self.family_name = family_name
         
         # Create unified run directory structure
-        # data/projects/<project>/<experiment>/<run_id>/checkpoints/
+        # data/projects/<project>/[<family>/]<experiment>/<run_id>/checkpoints/
+        path_parts = [project_name]
+        if family_name:
+            path_parts.append(family_name)
+        path_parts.append(experiment_name)
+        
         if run_id:
-            self.checkpoint_dir = self.base_dir / project_name / experiment_name / run_id / "checkpoints"
-        else:
-            # Fallback for runs without ID (shouldn't happen in new CLI)
-            self.checkpoint_dir = self.base_dir / project_name / experiment_name / "checkpoints"
+            path_parts.append(run_id)
+            
+        self.checkpoint_dir = self.base_dir.joinpath(*path_parts) / "checkpoints"
             
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
@@ -110,9 +117,12 @@ class CheckpointManager:
         is_best: bool = False,
         comparison_metric: str = "val_loss",
         scaler: Any = None,
+        scheduler: Any = None,
+        config: Optional[Dict] = None,
+        save_random_states: bool = True,
     ) -> Optional[str]:
         """
-        Save a checkpoint.
+        Save a checkpoint with full training state for pause/resume.
         
         Args:
             model: PyTorch model (or any object with state_dict())
@@ -122,6 +132,9 @@ class CheckpointManager:
             is_best: Force save as best model
             comparison_metric: Metric to use for best model comparison
             scaler: Optional sklearn scaler for data normalization
+            scheduler: Optional learning rate scheduler
+            config: Optional training configuration dict
+            save_random_states: Whether to save RNG states for reproducibility
             
         Returns:
             Path to saved checkpoint, or None if skipped
@@ -153,10 +166,24 @@ class CheckpointManager:
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict() if optimizer else None,
+            "scheduler_state_dict": scheduler.state_dict() if scheduler else None,
             "metrics": metrics,
             "timestamp": datetime.now().isoformat(),
-            "scaler": scaler,  # sklearn scaler for glucose normalization
+            "scaler": scaler,
+            "config": config,
         }
+        
+        # Save random states for reproducibility
+        if save_random_states:
+            import random
+            import numpy as np
+            checkpoint["random_states"] = {
+                "python": random.getstate(),
+                "numpy": np.random.get_state(),
+                "torch": torch.get_rng_state(),
+            }
+            if torch.cuda.is_available():
+                checkpoint["random_states"]["cuda"] = torch.cuda.get_rng_state_all()
         
         saved_path = None
         
@@ -185,20 +212,24 @@ class CheckpointManager:
         epoch: Optional[int] = None,
         model: Any = None,
         optimizer: Any = None,
+        scheduler: Any = None,
         device: str = "cpu",
-    ) -> Tuple[int, Dict[str, float]]:
+        restore_random_states: bool = False,
+    ) -> Tuple[int, Dict[str, float], Optional[Dict]]:
         """
-        Load a checkpoint.
+        Load a checkpoint with full training state for resume.
         
         Args:
             checkpoint_type: "best", "latest", or "epoch"
             epoch: Specific epoch to load (when checkpoint_type="epoch")
             model: Model to load weights into
             optimizer: Optimizer to load state into
+            scheduler: Learning rate scheduler to load state into
             device: Device to load tensors to
+            restore_random_states: Whether to restore RNG states
             
         Returns:
-            Tuple of (epoch, metrics)
+            Tuple of (epoch, metrics, config)
         """
         try:
             import torch
@@ -223,7 +254,7 @@ class CheckpointManager:
             raise FileNotFoundError(f"Checkpoint not found: {path}")
         
         # Load checkpoint
-        checkpoint = torch.load(path, map_location=device)
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
         
         if model is not None:
             model.load_state_dict(checkpoint["model_state_dict"])
@@ -233,7 +264,26 @@ class CheckpointManager:
             optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
             logger.info(f"Loaded optimizer state from {path}")
         
-        return checkpoint["epoch"], checkpoint.get("metrics", {})
+        if scheduler is not None and checkpoint.get("scheduler_state_dict"):
+            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+            logger.info(f"Loaded scheduler state from {path}")
+        
+        # Restore random states for reproducibility
+        if restore_random_states and checkpoint.get("random_states"):
+            import random
+            import numpy as np
+            states = checkpoint["random_states"]
+            if "python" in states:
+                random.setstate(states["python"])
+            if "numpy" in states:
+                np.random.set_state(states["numpy"])
+            if "torch" in states:
+                torch.set_rng_state(states["torch"])
+            if "cuda" in states and torch.cuda.is_available():
+                torch.cuda.set_rng_state_all(states["cuda"])
+            logger.info("Restored random states for reproducibility")
+        
+        return checkpoint["epoch"], checkpoint.get("metrics", {}), checkpoint.get("config")
     
     def list_checkpoints(self) -> list:
         """List all available checkpoints."""

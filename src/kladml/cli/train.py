@@ -13,17 +13,11 @@ from typing import Optional
 
 from rich.console import Console
 
-from kladml.db import Project, init_db
-from kladml.db.session import session_scope
-from kladml.training.executor import LocalTrainingExecutor
-from kladml.backends.local_tracker import LocalTracker
-from kladml.interfaces.tracker import TrackerInterface
+# NOTE: Heavy imports (db, training, backends) are done inside functions
+# for faster CLI startup time
 
 app = typer.Typer(help="Train models")
 console = Console()
-
-# Instantiate tracker
-tracker: TrackerInterface = LocalTracker()
 
 
 def _load_model_class_from_path(model_path: str):
@@ -121,15 +115,23 @@ def train_single(
     data: str = typer.Option(..., "--data", "-d", help="Path to training data"),
     val_data: Optional[str] = typer.Option(None, "--val", "-v", help="Path to validation data"),
     project: str = typer.Option(..., "--project", "-p", help="Project name"),
+    family: str = typer.Option("default", "--family", "-f", help="Family name (default: 'default')"),
     experiment: str = typer.Option(..., "--experiment", "-e", help="Experiment name"),
     config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to YAML config"),
 ) -> None:
     """Run a single training."""
-    init_db()
+    # Lazy imports for faster CLI startup
+    from kladml.training.executor import LocalTrainingExecutor
+    from kladml.backends.local_tracker import LocalTracker
+    from kladml.interfaces.tracker import TrackerInterface
+    from kladml.backends import get_metadata_backend
+    
+    tracker: TrackerInterface = LocalTracker()
+    metadata = get_metadata_backend()
     
     console.print(f"[bold]Training: {model}[/bold]")
     console.print(f"Data: {data}")
-    console.print(f"Project: {project} / Experiment: {experiment}")
+    console.print(f"Project: {project} / Family: {family} / Experiment: {experiment}")
     
     try:
         model_class = _resolve_model_class(model)
@@ -139,20 +141,32 @@ def train_single(
         raise typer.Exit(code=1)
     
     train_config = _load_yaml_config(config) if config else {}
+    train_config["family_name"] = family
     
-    with session_scope() as session:
-        proj = session.query(Project).filter_by(name=project).first()
+    # Setup Metadata (Project/Family/Experiment links)
+    try:
+        # Get or Create Project
+        proj = metadata.get_project(project)
         if not proj:
             console.print(f"[yellow]Creating project '{project}'...[/yellow]")
-            proj = Project(name=project)
-            session.add(proj)
-            session.flush()
-        
+            proj = metadata.create_project(project)
+            
+        # Get or Create Family
+        fam = metadata.get_family(family, project)
+        if not fam:
+            console.print(f"[yellow]Creating family '{family}'...[/yellow]")
+            fam = metadata.create_family(family, project, description="Created by training CLI")
+            
         # Create/Get experiment via Tracker
         tracker.create_experiment(experiment)
         
-        # Link to project
-        proj.add_experiment(experiment)
+        # Link to family (if not already linked)
+        if experiment not in fam.experiment_names:
+            metadata.add_experiment_to_family(family, project, experiment)
+            
+    except Exception as e:
+        console.print(f"[red]Metadata error:[/red] {e}")
+        raise typer.Exit(code=1)
     
     # Execute training (inject tracker)
     executor = LocalTrainingExecutor(
@@ -181,11 +195,19 @@ def train_grid_search(
     model: str = typer.Option(..., "--model", "-m", help="Model name or path to .py file"),
     data: str = typer.Option(..., "--data", "-d", help="Path to training data"),
     project: str = typer.Option(..., "--project", "-p", help="Project name"),
+    family: str = typer.Option("default", "--family", "-f", help="Family name (default: 'default')"),
     experiment: str = typer.Option(..., "--experiment", "-e", help="Experiment name"),
     grid_config: str = typer.Option(..., "--grid", "-g", help="Path to grid search YAML config"),
 ) -> None:
     """Run grid search training."""
-    init_db()
+    # Lazy imports for faster CLI startup
+    from kladml.training.executor import LocalTrainingExecutor
+    from kladml.backends.local_tracker import LocalTracker
+    from kladml.interfaces.tracker import TrackerInterface
+    from kladml.backends import get_metadata_backend
+    
+    tracker: TrackerInterface = LocalTracker()
+    metadata = get_metadata_backend()
     
     console.print(f"[bold]Grid Search Training: {model}[/bold]")
     
@@ -198,6 +220,9 @@ def train_grid_search(
     
     try:
         config = _load_yaml_config(grid_config)
+        # Inject family name
+        config["family_name"] = family
+        
         search_space = config.get("search_space", {})
         if not search_space:
             console.print("[red]Error:[/red] No 'search_space' found in grid config")
@@ -211,16 +236,29 @@ def train_grid_search(
         console.print(f"[red]Error loading config:[/red] {e}")
         raise typer.Exit(code=1)
     
-    with session_scope() as session:
-        proj = session.query(Project).filter_by(name=project).first()
+    # Setup Metadata
+    try:
+        # Get or Create Project
+        proj = metadata.get_project(project)
         if not proj:
             console.print(f"[yellow]Creating project '{project}'...[/yellow]")
-            proj = Project(name=project)
-            session.add(proj)
-            session.flush()
-        
+            proj = metadata.create_project(project)
+            
+        # Get or Create Family
+        fam = metadata.get_family(family, project)
+        if not fam:
+            console.print(f"[yellow]Creating family '{family}'...[/yellow]")
+            fam = metadata.create_family(family, project, description="Created by grid search")
+            
         tracker.create_experiment(experiment)
-        proj.add_experiment(experiment)
+        
+        # Link to family
+        if experiment not in fam.experiment_names:
+            metadata.add_experiment_to_family(family, project, experiment)
+            
+    except Exception as e:
+        console.print(f"[red]Metadata error:[/red] {e}")
+        raise typer.Exit(code=1)
     
     # Execute grid search (inject tracker)
     executor = LocalTrainingExecutor(
@@ -244,6 +282,95 @@ def train_grid_search(
         console.print(f"\n[bold]Best run:[/bold] {executor.best_run_id}")
         if executor.best_metrics:
             console.print(f"Best metrics: {executor.best_metrics}")
+
+
+@app.command("quick")
+def train_quick(
+    model: str = typer.Option("gluformer", "--model", "-m", help="Model name (e.g. 'gluformer')"),
+    config: str = typer.Option(..., "--config", "-c", help="Path to YAML config file"),
+    train_data: str = typer.Option(..., "--train", "-t", help="Path to training data (.pkl)"),
+    val_data: Optional[str] = typer.Option(None, "--val", "-v", help="Path to validation data (.pkl)"),
+    device: str = typer.Option("auto", "--device", "-d", help="Device: auto|cpu|cuda|mps"),
+    resume: bool = typer.Option(False, "--resume", "-r", help="Resume from latest checkpoint"),
+) -> None:
+    """
+    Quick training without database or project setup.
+    
+    Example:
+        kladml train quick -c config.yaml -t train.pkl -v val.pkl
+        
+    Resume interrupted training:
+        kladml train quick -c config.yaml -t train.pkl --resume
+    """
+    import yaml
+    
+    console.print("[bold blue]🚀 KladML Quick Training[/bold blue]\n")
+    
+    # Load config
+    config_path = Path(config)
+    if not config_path.exists():
+        console.print(f"[red]Error: Config not found: {config}[/red]")
+        raise typer.Exit(1)
+    
+    with open(config_path) as f:
+        train_config = yaml.safe_load(f) or {}
+    
+    # Override device if specified
+    if device != "auto":
+        train_config["device"] = device
+    
+    console.print(f"  Model: [cyan]{model}[/cyan]")
+    console.print(f"  Config: [cyan]{config}[/cyan]")
+    console.print(f"  Train data: [cyan]{train_data}[/cyan]")
+    if val_data:
+        console.print(f"  Val data: [cyan]{val_data}[/cyan]")
+    console.print()
+    
+    # Print key config values
+    console.print("[bold]Config:[/bold]")
+    for key in ['project_name', 'experiment_name', 'epochs', 'loss_mode', 'batch_size', 'learning_rate']:
+        if key in train_config:
+            console.print(f"  {key}: {train_config[key]}")
+    console.print()
+    
+    # Resolve model class
+    try:
+        model_class = _resolve_model_class(model)
+        console.print(f"Loaded: [green]{model_class.__name__}[/green]")
+    except Exception as e:
+        console.print(f"[red]Error loading model:[/red] {e}")
+        raise typer.Exit(1)
+    
+    # Create model instance and train
+    if resume:
+        console.print("\n[bold yellow]⏯ Resuming training from checkpoint...[/bold yellow]\n")
+    else:
+        console.print("\n[bold]Starting training...[/bold]\n")
+    console.print("-" * 60)
+    
+    try:
+        model_instance = model_class(config=train_config)
+        metrics = model_instance.train(X_train=train_data, X_val=val_data, resume=resume)
+        
+        console.print("-" * 60)
+        console.print("\n[bold green]✅ Training complete![/bold green]")
+        
+        if metrics:
+            console.print("\n[bold]Final Metrics:[/bold]")
+            for key, value in metrics.items():
+                if isinstance(value, float):
+                    console.print(f"  {key}: {value:.4f}")
+                else:
+                    console.print(f"  {key}: {value}")
+    
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Training interrupted by user.[/yellow]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]Training failed:[/red] {e}")
+        import traceback
+        traceback.print_exc()
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
