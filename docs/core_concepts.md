@@ -6,9 +6,25 @@ KladML is built on a "1 Interface, N Implementations" philosophy. This allows yo
 
 ## Architecture Overview
 
+KladML organizes your work in a structured hierarchy:
+
+```
+Project > Family > Experiment > Run
+```
+
+- **Project**: High-level container (e.g., "CustomerChurn")
+- **Family**: Grouping of related experiments (e.g., "DeepLearning", "RandomForests")
+- **Experiment**: Specific hypothesis or model config
+- **Run**: Individual training execution
+
+---
+
+## Component Architecture
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Your Code                              │
+│         (Model implementation, Training script)             │
 ├─────────────────────────────────────────────────────────────┤
 │                   ExperimentRunner                          │
 │         (Orchestrates training, tracking, storage)          │
