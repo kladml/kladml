@@ -21,12 +21,13 @@ app = typer.Typer(
 console = Console()
 
 # Import subcommands
-from kladml.cli import run, project
+from kladml.cli import run, project, family
 from kladml.cli import projects, experiments, train, data, models, evaluate
 
 
 # Register subcommands
 app.add_typer(projects.app, name="project", help="Manage projects")
+app.add_typer(family.app, name="family", help="Manage families")
 app.add_typer(experiments.app, name="experiment", help="Manage experiments")
 app.add_typer(train.app, name="train", help="Train models")
 app.add_typer(run.app, name="run", help="Run scripts and manage runs")

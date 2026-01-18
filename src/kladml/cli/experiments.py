@@ -9,13 +9,13 @@ from typing import Optional, List
 from rich.console import Console
 from rich.table import Table
 
-from kladml.db import Project, init_db
-from kladml.db.session import session_scope
 from kladml.backends.local_tracker import LocalTracker
 from kladml.interfaces.tracker import TrackerInterface
+from kladml.backends import get_metadata_backend
 
 app = typer.Typer(help="Manage KladML experiments")
 console = Console()
+metadata = get_metadata_backend()
 
 # Instantiate tracker (DI would be better in a larger app)
 tracker: TrackerInterface = LocalTracker()
@@ -25,128 +25,123 @@ tracker: TrackerInterface = LocalTracker()
 def create_experiment(
     name: str = typer.Option(..., "--name", "-n", help="Experiment name"),
     project: str = typer.Option(..., "--project", "-p", help="Parent project name"),
+    family: str = typer.Option("default", "--family", "-f", help="Family name (default: 'default')"),
     description: Optional[str] = typer.Option(None, "--description", "-d", help="Experiment description"),
 ) -> None:
     """
-    Create a new experiment under a project.
+    Create a new experiment under a project and family.
     
     Example:
-        kladml experiment create -p my-project -n baseline
+        kladml experiment create -p sentinella -f glucose_forecasting -n gluformer_v4
     """
-    init_db()
-    
-    # Find parent project
-    with session_scope() as session:
-        parent = session.query(Project).filter_by(name=project).first()
-        if not parent:
+    try:
+        # Check if project exists
+        proj = metadata.get_project(project)
+        if not proj:
             console.print(f"[red]Error:[/red] Project '{project}' not found")
             raise typer.Exit(code=1)
         
-        # Check if already linked
-        if parent.experiment_names and name in parent.experiment_names:
-            console.print(f"[yellow]Experiment '{name}' already exists in project '{project}'[/yellow]")
-            return
+        # Check/Create Family
+        fam = metadata.get_family(family, project)
+        if not fam:
+            console.print(f"[yellow]Family '{family}' does not exist. Creating it...[/yellow]")
+            fam = metadata.create_family(family, project, description="Default family")
         
-        # Create via Tracker interface
+        # Check if experiment already linked
+        if fam.experiment_names and name in fam.experiment_names:
+            console.print(f"[yellow]Experiment '{name}' already exists in family '{family}'[/yellow]")
+            return
+
+        # Create via Tracker interface (MLflow)
         try:
             exp_id = tracker.create_experiment(name)
-            console.print(f"Created/Found experiment: {name} (id: {exp_id})")
+            console.print(f"Created/Found MLflow experiment: {name} (id: {exp_id})")
         except Exception as e:
             console.print(f"[red]Error creating experiment:[/red] {e}")
             raise typer.Exit(code=1)
         
-        # Link to project
-        parent.add_experiment(name)
-    
-    console.print(f"[green]✓[/green] Created experiment '{name}' in project '{project}'")
+        # Link to family
+        metadata.add_experiment_to_family(family, project, name)
+        
+        console.print(f"[green]✓[/green] Created experiment '{name}' in family '{family}' (project '{project}')")
+        
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command("list")
 def list_experiments(
     project: str = typer.Option(..., "--project", "-p", help="Project name"),
+    family: Optional[str] = typer.Option(None, "--family", "-f", help="Filter by family"),
 ) -> None:
     """
-    List all experiments in a project.
+    List all experiments in a project (grouped by family).
     
     Example:
-        kladml experiment list -p my-project
+        kladml experiment list -p sentinella
     """
-    init_db()
-    
-    with session_scope() as session:
-        parent = session.query(Project).filter_by(name=project).first()
-        if not parent:
-            console.print(f"[red]Error:[/red] Project '{project}' not found")
-            raise typer.Exit(code=1)
+    try:
+        if family:
+            fam_list = [metadata.get_family(family, project)]
+            if not fam_list[0]:
+                console.print(f"[red]Family '{family}' not found in project '{project}'[/red]")
+                return
+        else:
+            fam_list = metadata.list_families(project)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1)
         
-        experiment_names = parent.experiment_names or []
+    if not fam_list:
+        console.print(f"[yellow]No families/experiments found in project '{project}'[/yellow]")
+        return
+    
+    table = Table(title=f"Experiments in '{project}'")
+    table.add_column("Family", style="cyan")
+    table.add_column("Experiment", style="bold")
+    table.add_column("ID", style="dim")
+    table.add_column("Runs", justify="right")
+    table.add_column("Status")
+    
+    for fam in fam_list:
+        experiment_names = fam.experiment_names or []
         
         if not experiment_names:
-            console.print(f"[yellow]No experiments in project '{project}'[/yellow]")
-            return
-        
-        # Get details via Tracker
-        table = Table(title=f"Experiments in '{project}'")
-        table.add_column("Name", style="bold")
-        table.add_column("ID", style="dim")
-        table.add_column("Runs", justify="right")
-        table.add_column("Status")
-        
-        found_count = 0
+            table.add_row(fam.name, "[dim]-[/dim]", "-", "-", "-")
+            continue
+            
         for name in experiment_names:
             exp = tracker.get_experiment_by_name(name)
             if exp:
-                runs = tracker.search_runs(exp["id"], max_results=0)  # Just need count really, but API might limit
-                # Better way: search_runs returns list, just take len
-                # To be efficient we might need a count method, but for now lists are fine for local
-                run_list = tracker.search_runs(exp["id"], max_results=1000)
-                
+                runs = tracker.search_runs(exp["id"], max_results=1000)
                 table.add_row(
+                    fam.name,
                     exp["name"],
                     exp["id"],
-                    str(len(run_list)),
+                    str(len(runs)),
                     exp.get("lifecycle_stage", "active"),
                 )
-                found_count += 1
             else:
-                table.add_row(name, "-", "0", "[red]not found[/red]")
-        
-        console.print(table)
+                table.add_row(fam.name, name, "-", "0", "[red]not found[/red]")
+    
+    console.print(table)
 
 
 @app.command("delete")
 def delete_experiment(
-    name: str = typer.Argument(..., help="Experiment name to delete"),
+    name: str = typer.Argument(..., help="Experiment name to unlink"),
     project: str = typer.Option(..., "--project", "-p", help="Parent project name"),
+    family: str = typer.Option("default", "--family", "-f", help="Family name"),
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
 ) -> None:
     """
-    Unlink an experiment from a project.
-    
-    Example:
-        kladml experiment delete baseline -p my-project
+    Unlink an experiment from a family.
     """
-    init_db()
-    
-    with session_scope() as session:
-        parent = session.query(Project).filter_by(name=project).first()
-        if not parent:
-            console.print(f"[red]Error:[/red] Project '{project}' not found")
-            raise typer.Exit(code=1)
-        
-        if not parent.experiment_names or name not in parent.experiment_names:
-            console.print(f"[red]Error:[/red] Experiment '{name}' not found in project '{project}'")
-            raise typer.Exit(code=1)
-        
-        if not force:
-            console.print(f"[yellow]Warning:[/yellow] This will unlink experiment '{name}' from project '{project}'")
-            confirm = typer.confirm("Are you sure?")
-            if not confirm:
-                raise typer.Exit(code=0)
-        
-        parent.remove_experiment(name)
-    
-    console.print(f"[green]✓[/green] Unlinked experiment '{name}' from project '{project}'")
+    # Note: Currently MetadataInterface doesn't support removing experiment specifically.
+    # But Family model has logic. We might need to extend MetadataInterface or just ignore for now.
+    console.print("[yellow]Not implemented yet in new interface architecture.[/yellow]")
+    # TODO: Add remove_experiment_from_family to MetadataInterface
 
 
 @app.command("runs")
