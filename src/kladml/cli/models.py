@@ -3,8 +3,6 @@ Model management CLI commands.
 """
 
 import typer
-import torch
-import json
 import logging
 from pathlib import Path
 from rich.console import Console
@@ -24,6 +22,8 @@ def export_model(
     
     Wraps the model to accept simplified input and embeds scaler stats.
     """
+    # Lazy imports for faster CLI startup
+    import torch
     from kladml.architectures.gluformer.model import GluformerModel
     from kladml.training.checkpoint import CheckpointManager
     

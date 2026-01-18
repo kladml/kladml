@@ -134,9 +134,40 @@ kladml run local train.py --image my-registry/my-image:latest
 
 ## Training Commands
 
+### `kladml train quick`
+
+**Recommended** - Quick training without database setup.
+
+```bash
+kladml train quick [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--config`, `-c` | Yes | Path to YAML config file |
+| `--train`, `-t` | Yes | Path to training data (`.pkl` or `.h5`) |
+| `--val`, `-v` | No | Path to validation data |
+| `--model`, `-m` | No | Model name (default: `gluformer`) |
+| `--device`, `-d` | No | Device: `auto`, `cpu`, `cuda`, `mps` |
+| `--resume`, `-r` | No | Resume from latest checkpoint |
+
+**Examples:**
+
+```bash
+# Basic training
+kladml train quick -c data/configs/my_config.yaml -t train.pkl -v val.pkl
+
+# Resume interrupted training
+kladml train quick -c data/configs/my_config.yaml -t train.pkl --resume
+```
+
+---
+
 ### `kladml train single`
 
-Train a model on a dataset.
+Full training with project and experiment tracking (requires database setup).
 
 ```bash
 kladml train single [OPTIONS]
@@ -146,8 +177,8 @@ kladml train single [OPTIONS]
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--model`, `-m` | Yes | Model architecture name (e.g., `gluformer`) or path to `.py` file |
-| `--data`, `-d` | Yes | Path to training data (`.pkl` or `.h5`) |
+| `--model`, `-m` | Yes | Model architecture name (e.g., `gluformer`) |
+| `--data`, `-d` | Yes | Path to training data |
 | `--val` | No | Path to validation data |
 | `--project`, `-p` | Yes | Project name |
 | `--experiment`, `-e` | Yes | Experiment name |
@@ -175,6 +206,47 @@ The configuration file must define lists of values for grid search.
 
 ```bash
 kladml train grid --model gluformer --config grid.yaml --project sentinella --experiment tuning
+```
+
+---
+
+## Evaluation Commands
+
+### `kladml eval run`
+
+Evaluate a trained model on test data.
+
+```bash
+kladml eval run [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--checkpoint` | Yes | Path to model checkpoint (`.pt` file) |
+| `--data` | Yes | Path to test data |
+| `--model` | No | Model type (default: auto-detect) |
+| `--output` | No | Output directory for results |
+| `--device` | No | Device: `auto`, `cpu`, `cuda` |
+
+**Example:**
+
+```bash
+kladml eval run --checkpoint best_model_jit.pt --data test.pkl --output eval_results/
+```
+
+**Output includes:**
+- Metrics (MAE, RMSE, MAPE, Coverage)
+- Plots (predictions, error distribution, scatter)
+- JSON metrics file and markdown report
+
+### `kladml eval info`
+
+Show available evaluators for each model type.
+
+```bash
+kladml eval info
 ```
 
 ---

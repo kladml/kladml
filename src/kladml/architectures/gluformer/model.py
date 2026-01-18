@@ -103,6 +103,14 @@ class GluformerModel(TimeSeriesModel):
         self.patience = config.get("patience", 10)
         self.warmup_epochs = config.get("warmup_epochs", 5)
         
+        # Loss configuration
+        # loss_mode: "mse" (pure point prediction) or "nll" (probabilistic with uncertainty)
+        self.loss_mode = config.get("loss_mode", "nll")
+        # variance_reg: Regularization to prevent variance collapse (only for nll mode)
+        self.variance_reg = config.get("variance_reg", 0.01)
+        # temperature: Post-hoc scaling factor for logvar (< 1 = wider intervals)
+        self.temperature = config.get("temperature", 1.0)
+        
         # Device
         self._device = None
         self._model = None
@@ -218,9 +226,31 @@ class GluformerModel(TimeSeriesModel):
         # Optimizer
         optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
         
-        # Loss functions
-        def gaussian_nll_loss(pred_mean, pred_logvar, y_true):
-            return 0.5 * (torch.exp(-pred_logvar) * (y_true - pred_mean)**2 + pred_logvar).mean()
+        # Resume from checkpoint if requested
+        start_epoch = 0
+        resume_flag = kwargs.get('resume', False)
+        if resume_flag and hasattr(self, '_checkpoint_manager') and self._checkpoint_manager:
+            try:
+                start_epoch, metrics, _ = self._checkpoint_manager.load_checkpoint(
+                    checkpoint_type="latest",
+                    model=model,
+                    optimizer=optimizer,
+                    device=str(self.device),
+                    restore_random_states=True,
+                )
+                start_epoch += 1  # Continue from next epoch
+                self._project_logger.info(f"Resumed from epoch {start_epoch - 1}")
+            except FileNotFoundError:
+                self._project_logger.info("No checkpoint found, starting fresh")
+        
+        # Loss functions with variance regularization
+        def gaussian_nll_loss_reg(pred_mean, pred_logvar, y_true, var_reg=0.01):
+            """NLL loss with variance regularization to prevent collapse."""
+            nll = 0.5 * (torch.exp(-pred_logvar) * (y_true - pred_mean)**2 + pred_logvar).mean()
+            # Regularization: penalize very small variance (very negative logvar)
+            # Encourages logvar to stay reasonable (not too confident)
+            var_reg_loss = var_reg * torch.mean(torch.exp(-pred_logvar))
+            return nll + var_reg_loss
         
         mse_loss = nn.MSELoss()
         
@@ -228,7 +258,13 @@ class GluformerModel(TimeSeriesModel):
         best_val_loss = float('inf')
         metrics = {}
         
-        for epoch in range(self.epochs):
+        # Log loss mode
+        self._project_logger.info(f"Loss mode: {self.loss_mode}")
+        if self.loss_mode == "nll":
+            self._project_logger.info(f"Variance regularization: {self.variance_reg}")
+            self._project_logger.info(f"Warmup epochs: {self.warmup_epochs}")
+        
+        for epoch in range(start_epoch, self.epochs):
             self._callbacks.on_epoch_begin(epoch, {"epoch": epoch})
             
             # Check early stopping
@@ -236,10 +272,20 @@ class GluformerModel(TimeSeriesModel):
                 self._project_logger.info(f"Early stopping at epoch {epoch}")
                 break
             
-            # Determine loss mode (MSE warmup -> NLL)
-            use_nll = epoch >= self.warmup_epochs
-            loss_fn = gaussian_nll_loss if use_nll else lambda m, v, y: mse_loss(m, y)
-            phase = "NLL" if use_nll else "MSE"
+            # Determine loss function based on loss_mode config
+            if self.loss_mode == "mse":
+                # Pure MSE mode: ignore variance entirely
+                loss_fn = lambda m, v, y: mse_loss(m, y)
+                phase = "MSE"
+            else:
+                # NLL mode with warmup
+                use_nll = epoch >= self.warmup_epochs
+                if use_nll:
+                    loss_fn = lambda m, v, y: gaussian_nll_loss_reg(m, v, y, self.variance_reg)
+                    phase = "NLL"
+                else:
+                    loss_fn = lambda m, v, y: mse_loss(m, y)
+                    phase = "MSE"
             
             # Train epoch
             model.train()
@@ -263,7 +309,7 @@ class GluformerModel(TimeSeriesModel):
                 optimizer.step()
                 
                 train_losses.append(loss.item())
-                callbacks.on_batch_end(batch_idx, {"loss": loss.item()})
+                self._callbacks.on_batch_end(batch_idx, {"loss": loss.item()})
             
             avg_train_loss = np.mean(train_losses)
             epoch_metrics = {"train_loss": avg_train_loss, "phase": phase}
@@ -281,7 +327,7 @@ class GluformerModel(TimeSeriesModel):
                         y = batch['y'].to(self.device)
                         
                         pred_mean, pred_logvar = model(x_id, x_enc, None, x_dec, None)
-                        loss = gaussian_nll_loss(pred_mean, pred_logvar, y)
+                        loss = loss_fn(pred_mean, pred_logvar, y)
                         val_losses.append(loss.item())
                 
                 avg_val_loss = np.mean(val_losses)
