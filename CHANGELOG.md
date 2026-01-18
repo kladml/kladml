@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configs View:** Added TUI support for viewing configuration files.
 - **Dependency Split:** Core vs CLI split in `pyproject.toml` (install `kladml[cli]` for UI).
 
+### Removed
+- **Maintenance Scripts:** Removed `scripts/sync_datasets.py` and `scripts/reconstruct_runs.py` from version control (now ignored).
+
 ### Changed
 - **Hierarchy:** Refined concept to "Workspace > Projects > Family > Experiment".
 - **Refactor:** `ConsolePublisher` now robust to missing `rich` library.

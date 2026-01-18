@@ -31,10 +31,16 @@ class LocalTracker(TrackerInterface):
         """
         self.tracking_dir = Path(tracking_dir).resolve()
         
-        # Set MLflow tracking URI to local SQLite
-        # Create directory only when needed to avoid empty folders
-        self._tracking_uri = f"sqlite:///{self.tracking_dir}/mlflow.db"
-        self._artifact_root = str(self.tracking_dir / "artifacts")
+        from kladml.db.session import get_db_url
+        
+        # Centralized MLflow Tracking (Same as KladML DB)
+        self._tracking_uri = get_db_url()
+        
+        # Artifacts remain in project directory (managed by CheckpointManager),
+        # but MLflow needs a place for its own artifacts (like temp models).
+        # We can store them in ~/.kladml/mlruns_artifacts or keep them local.
+        # For now, let's keep them centralized too to avoid scattering.
+        self._artifact_root = str(Path.home() / ".kladml" / "mlartifacts")
         
         self._active_run = None
         self._mlflow = None

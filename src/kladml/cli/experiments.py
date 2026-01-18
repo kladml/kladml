@@ -133,15 +133,38 @@ def delete_experiment(
     name: str = typer.Argument(..., help="Experiment name to unlink"),
     project: str = typer.Option(..., "--project", "-p", help="Parent project name"),
     family: str = typer.Option("default", "--family", "-f", help="Family name"),
-    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
+    force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
 ) -> None:
     """
     Unlink an experiment from a family.
     """
-    # Note: Currently MetadataInterface doesn't support removing experiment specifically.
-    # But Family model has logic. We might need to extend MetadataInterface or just ignore for now.
-    console.print("[yellow]Not implemented yet in new interface architecture.[/yellow]")
-    # TODO: Add remove_experiment_from_family to MetadataInterface
+    if not force:
+        confirm = typer.confirm(f"Are you sure you want to remove experiment '{name}' from family '{family}'?")
+        if not confirm:
+            raise typer.Abort()
+
+    try:
+        # Check existence
+        fam = metadata.get_family(family, project)
+        if not fam:
+            console.print(f"[red]Error:[/red] Family '{family}' not found")
+            raise typer.Exit(code=1)
+            
+        if not fam.experiment_names or name not in fam.experiment_names:
+            console.print(f"[yellow]Experiment '{name}' not found in family '{family}'[/yellow]")
+            return
+
+        # Remove from Family (Metadata)
+        metadata.remove_experiment_from_family(family, project, name)
+        
+        # Note: We do NOT delete the MLflow experiment itself, as it might contain data.
+        # We just unlink it from the hierarchy.
+        
+        console.print(f"[green]✓[/green] Removed experiment '{name}' from family '{family}'")
+        
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command("runs")

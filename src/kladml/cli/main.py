@@ -56,6 +56,14 @@ def init(
     init_workspace(force)
 
 
+@app.command()
+def ui():
+    """
+    Launch the interactive Terminal User Interface (TUI).
+    """
+    from kladml.tui.app import run_tui
+    run_tui()
+
 if __name__ == "__main__":
     app()
 
