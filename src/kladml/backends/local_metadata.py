@@ -4,8 +4,8 @@ Local Metadata Backend (SQLite).
 Implements MetadataInterface using SQLAlchemy and SQLite.
 """
 
-from typing import List, Optional
-from kladml.interfaces.metadata import MetadataInterface, ProjectDTO, FamilyDTO
+from typing import List, Optional, Any
+from kladml.interfaces.metadata import MetadataInterface, ProjectDTO, FamilyDTO, DatasetDTO
 from kladml.db import Project, Family, init_db, session_scope
 
 class LocalMetadata(MetadataInterface):
@@ -34,6 +34,36 @@ class LocalMetadata(MetadataInterface):
             experiment_names=f.experiment_names or [],
             created_at=f.created_at
         )
+
+    def _to_dataset_dto(self, d: Any) -> DatasetDTO:
+         # Using Any for d to avoid import circular issues if not clean, but normally it's available
+         from kladml.db.models import Dataset
+         return DatasetDTO(
+             id=d.id,
+             name=d.name,
+             path=d.path,
+             description=d.description,
+             created_at=d.created_at
+         )
+
+    def create_dataset(self, name: str, path: str, description: Optional[str] = None) -> DatasetDTO:
+        from kladml.db.models import Dataset
+        with session_scope() as session:
+            existing = session.query(Dataset).filter_by(name=name).first()
+            if existing:
+                return self._to_dataset_dto(existing)
+            
+            ds = Dataset(name=name, path=path, description=description)
+            session.add(ds)
+            session.flush()
+            session.refresh(ds)
+            return self._to_dataset_dto(ds)
+
+    def list_datasets(self) -> List[DatasetDTO]:
+        from kladml.db.models import Dataset
+        with session_scope() as session:
+            datasets = session.query(Dataset).order_by(Dataset.name).all()
+            return [self._to_dataset_dto(d) for d in datasets]
 
     # Project Methods
     def create_project(self, name: str, description: Optional[str] = None) -> ProjectDTO:
@@ -130,3 +160,15 @@ class LocalMetadata(MetadataInterface):
                 raise ValueError(f"Family '{family_name}' not found in project '{project_name}'")
             
             family.add_experiment(experiment_name)
+
+    def remove_experiment_from_family(self, family_name: str, project_name: str, experiment_name: str) -> None:
+        with session_scope() as session:
+            project = session.query(Project).filter_by(name=project_name).first()
+            if not project:
+                raise ValueError(f"Project '{project_name}' not found")
+            
+            family = session.query(Family).filter_by(project_id=project.id, name=family_name).first()
+            if not family:
+                raise ValueError(f"Family '{family_name}' not found in project '{project_name}'")
+            
+            family.remove_experiment(experiment_name)
