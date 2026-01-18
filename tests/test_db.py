@@ -10,20 +10,27 @@ from pathlib import Path
 
 # Set test database path before importing
 TEST_DB_DIR = tempfile.mkdtemp()
-os.environ["KLADML_DB_PATH"] = str(Path(TEST_DB_DIR) / "test_kladml.db")
+TEST_DB_PATH = str(Path(TEST_DB_DIR) / "test_kladml.db")
+os.environ["KLADML_DB_PATH"] = TEST_DB_PATH
 
-from kladml.db import Project, init_db
+from kladml.db import Project, Family, init_db
 from kladml.db.session import session_scope, reset_db
+import kladml.db.session as session_module
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_temp_dir():
     """Cleanup temporary directory after all tests."""
     yield
-    shutil.rmtree(TEST_DB_DIR)
+    shutil.rmtree(TEST_DB_DIR, ignore_errors=True)
 
 @pytest.fixture(autouse=True)
 def setup_test_db():
     """Reset database before each test."""
+    # Force reset singleton engine to pick up test DB path
+    session_module._engine = None
+    session_module._session_factory = None
+    
+    # Now reset and init
     reset_db()
     init_db()
     yield
@@ -47,7 +54,7 @@ class TestProject:
             assert project.description == "Test description"
             assert project.id is not None
             assert len(project.id) == 8
-            assert project.experiment_names == []  # Default empty list
+            assert project.family_count == 0  # No families yet
     
     def test_project_unique_name(self):
         """Test that project names must be unique."""
@@ -64,36 +71,54 @@ class TestProject:
         """Test project serialization."""
         with session_scope() as session:
             project = Project(name="dict-test", description="For dict test")
-            project.experiment_names = ["exp1", "exp2"]
             session.add(project)
             session.flush()
             
             data = project.to_dict()
             assert data["name"] == "dict-test"
             assert data["description"] == "For dict test"
-            assert data["experiment_names"] == ["exp1", "exp2"]
-            assert data["experiment_count"] == 2
+            assert data["family_count"] == 0
             assert "created_at" in data
 
-    def test_add_remove_experiments(self):
-        """Test adding/removing experiments from project."""
+
+class TestFamily:
+    """Tests for Family model."""
+    
+    def test_create_family(self):
+        """Test creating a family under a project."""
         with session_scope() as session:
-            project = Project(name="manage-exp-project")
+            project = Project(name="family-project")
             session.add(project)
             session.flush()
             
-            # Add
-            project.add_experiment("exp-1")
-            project.add_experiment("exp-2")
-            assert project.experiment_names == ["exp-1", "exp-2"]
+            family = Family(name="test-family", project_id=project.id, description="Test family")
+            session.add(family)
+        
+        with session_scope() as session:
+            family = session.query(Family).filter_by(name="test-family").first()
+            assert family is not None
+            assert family.name == "test-family"
+            assert family.experiment_names == []
+    
+    def test_add_experiments_to_family(self):
+        """Test adding/removing experiments from a family."""
+        with session_scope() as session:
+            project = Project(name="exp-family-project")
+            session.add(project)
+            session.flush()
             
-            # Remove
-            project.remove_experiment("exp-1")
-            assert project.experiment_names == ["exp-2"]
+            family = Family(name="exp-family", project_id=project.id)
+            session.add(family)
+            session.flush()
             
-            # Remove non-existent (should not fail)
-            project.remove_experiment("does-not-exist")
-            assert project.experiment_names == ["exp-2"]
+            # Add experiments
+            family.add_experiment("exp-1")
+            family.add_experiment("exp-2")
+            assert family.experiment_names == ["exp-1", "exp-2"]
+            
+            # Duplicate add should not add again
+            family.add_experiment("exp-1")
+            assert family.experiment_names == ["exp-1", "exp-2"]
 
 
 class TestSessionManagement:
