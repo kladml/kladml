@@ -6,16 +6,23 @@ KladML is built on a "1 Interface, N Implementations" philosophy. This allows yo
 
 ## Architecture Overview
 
-KladML organizes your work in a structured hierarchy:
+KladML organizes your work in a structured hierarchy, starting from a **Workspace**:
 
 ```
-Project > Family > Experiment > Run
+Workspace
+├── Projects (Logic)
+│   └── Family
+│       └── Experiment
+│           └── Run
+├── Datasets (Data versioning)
+└── Configs (Configuration files)
 ```
 
-- **Project**: High-level container (e.g., "CustomerChurn")
-- **Family**: Grouping of related experiments (e.g., "DeepLearning", "RandomForests")
-- **Experiment**: Specific hypothesis or model config
-- **Run**: Individual training execution
+- **Workspace**: Root of your local environment (`.kladml/` + `data/`).
+- **Project**: High-level container (e.g., "CustomerChurn").
+- **Family**: Grouping of related experiments (e.g., "DeepLearning").
+- **Dataset**: First-class entity, synced to DB.
+- **Run**: Individual training execution.
 
 ---
 
@@ -184,6 +191,25 @@ class S3Storage(StorageInterface):
 # Use it
 runner = ExperimentRunner(storage=S3Storage("my-bucket"))
 ```
+
+---
+
+---
+
+---
+
+---
+
+## Advanced Usage
+
+### Lightweight Installation
+If you are running KladML in a lightweight environment (e.g. CI/CD, Scripts, Notebooks) where you don't need the TUI:
+
+- **Core (`pip install kladml`)**: Installs only essential ML logic and models.
+- **Full CLI (`pip install "kladml[cli]"`)**: Includes the TUI and rich terminal formatting.
+
+### Modular Design
+KladML uses a modular interface-based design. This ensures your training code is decoupled from the underlying storage or tracking implementation, keeping your codebase clean and testable.
 
 ---
 

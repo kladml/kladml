@@ -7,7 +7,7 @@ KladML includes a command-line interface for common tasks.
 KladML organizes work in a 4-level hierarchy:
 
 ```
-Project > Family > Experiment > Run
+Workspace > Projects > Family > Experiment > Run
 ```
 
 - **Project**: Top-level container (e.g., `sentinella`)
@@ -18,6 +18,18 @@ Project > Family > Experiment > Run
 ---
 
 ## Global Commands
+
+### `kladml ui`
+
+Launch the interactive Terminal User Interface (TUI). This provides a visual workspace to explore:
+- Projects, Families, and Experiments (Tree View)
+- Datasets (List and details)
+- Configs (File viewer)
+- Run Details (Parameters and Metrics)
+
+```bash
+kladml ui
+```
 
 ### `kladml version`
 
