@@ -2,6 +2,21 @@
 
 KladML includes a command-line interface for common tasks.
 
+## Hierarchy Overview
+
+KladML organizes work in a 4-level hierarchy:
+
+```
+Project > Family > Experiment > Run
+```
+
+- **Project**: Top-level container (e.g., `sentinella`)
+- **Family**: Groups related experiments (e.g., `glucose_forecasting`)
+- **Experiment**: A specific model/approach (e.g., `gluformer_v4`)
+- **Run**: Single training execution with specific params
+
+---
+
 ## Global Commands
 
 ### `kladml version`
@@ -10,46 +25,116 @@ Show the installed version.
 
 ```bash
 kladml version
-# KladML version 0.1.0
 ```
 
 ### `kladml --help`
 
 Show all available commands.
 
-```bash
-kladml --help
-```
-
 ---
 
 ## Project Commands
 
-### `kladml init`
+### `kladml project create`
 
-Initialize a new KladML project.
+Create a new project.
 
 ```bash
-kladml init <project-name> [OPTIONS]
+kladml project create <name> [--description TEXT]
 ```
 
-**Arguments:**
+### `kladml project list`
 
-| Argument | Description |
-|----------|-------------|
-| `project-name` | Name of the project directory to create |
+List all projects.
 
-**Options:**
+```bash
+kladml project list
+```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--template`, `-t` | `default` | Project template to use |
+### `kladml project show`
+
+Show project details.
+
+```bash
+kladml project show <name>
+```
+
+### `kladml project delete`
+
+Delete a project.
+
+```bash
+kladml project delete <name> [--force]
+```
+
+---
+
+## Family Commands
+
+Families group related experiments within a project.
+
+### `kladml family create`
+
+Create a new family under a project.
+
+```bash
+kladml family create -p <project> -n <name> [-d DESCRIPTION]
+```
 
 **Example:**
 
 ```bash
-kladml init my-forecaster
-cd my-forecaster
+kladml family create -p sentinella -n glucose_forecasting -d "Blood glucose prediction models"
+```
+
+### `kladml family list`
+
+List families in a project.
+
+```bash
+kladml family list -p <project>
+```
+
+### `kladml family delete`
+
+Delete a family.
+
+```bash
+kladml family delete <name> -p <project> [--force]
+```
+
+---
+
+## Experiment Commands
+
+### `kladml experiment create`
+
+Create a new experiment under a family.
+
+```bash
+kladml experiment create -p <project> -f <family> -n <name>
+```
+
+**Example:**
+
+```bash
+kladml experiment create -p sentinella -f glucose_forecasting -n gluformer_v4
+```
+
+### `kladml experiment list`
+
+List experiments (grouped by family).
+
+```bash
+kladml experiment list -p <project> [-f <family>]
+```
+
+### `kladml experiment runs`
+
+List runs in an experiment.
+
+```bash
+kladml experiment runs <experiment-name> [--max N]
 ```
 
 ---
@@ -62,6 +147,28 @@ Run a training script using your local Python environment.
 
 ```bash
 kladml run native <script> [OPTIONS]
+```
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--experiment`, `-e` | `default` | Experiment name for tracking |
+
+**Example:**
+
+```bash
+kladml run native train.py --experiment baseline
+```
+
+---
+
+### `kladml run local`
+
+Run a training script inside a Docker/Podman container.
+
+```bash
+kladml run local <script> [OPTIONS]
 ```
 
 **Arguments:**
@@ -181,6 +288,7 @@ kladml train single [OPTIONS]
 | `--data`, `-d` | Yes | Path to training data |
 | `--val` | No | Path to validation data |
 | `--project`, `-p` | Yes | Project name |
+| `--family`, `-f` | No | Family name (default: `default`) |
 | `--experiment`, `-e` | Yes | Experiment name |
 | `--config`, `-c` | No | Path to YAML config file |
 

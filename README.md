@@ -22,6 +22,7 @@
 | **Server required** | ❌ No | ⚠️ Optional | ✅ Yes |
 | **Local-first** | ✅ SQLite default | ✅ Yes | ❌ No |
 | **Learning curve** | 🟢 Minutes | 🟡 Days | 🔴 Weeks |
+| **Hierarchy** | ✅ Project/Family/Exp | ❌ Exp/Run | ❌ Project/task |
 | **Custom backends** | ✅ Easy | ⚠️ Complex | ❌ No |
 
 ---
@@ -186,6 +187,7 @@ kladml models export ...      # Export to TorchScript
 
 # Organization
 kladml project list           # List all projects
+kladml family list ...        # List families
 kladml experiment list ...    # List experiments
 ```
 
