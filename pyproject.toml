@@ -22,9 +22,6 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.21.0",
     "pyyaml>=6.0",
-    "typer[all]>=0.9.0",
-    "rich>=13.0.0",
-    "httpx>=0.25.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "mlflow>=3.0.0,<4.0.0",
@@ -32,6 +29,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cli = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "textual>=0.40.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
