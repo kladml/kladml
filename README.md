@@ -22,7 +22,8 @@
 | **Server required** | ❌ No | ⚠️ Optional | ✅ Yes |
 | **Local-first** | ✅ SQLite default | ✅ Yes | ❌ No |
 | **Learning curve** | 🟢 Minutes | 🟡 Days | 🔴 Weeks |
-| **Hierarchy** | ✅ Project/Family/Exp | ❌ Exp/Run | ❌ Project/task |
+| **Hierarchy** | ✅ Workspace/Proj/Fam | ❌ Exp/Run | ❌ Project/task |
+| **User Interface** | ✅ TUI (Terminal) | ⚠️ Web UI | ✅ Web UI |
 | **Custom backends** | ✅ Easy | ⚠️ Complex | ❌ No |
 
 ---
@@ -30,7 +31,11 @@
 ## Installation
 
 ```bash
+# Core (lightweight, no UI)
 pip install kladml
+
+# Full CLI (for terminal usage with TUI)
+pip install "kladml[cli]"
 ```
 
 ## Quick Start
@@ -38,6 +43,9 @@ pip install kladml
 ```bash
 # Initialize workspace
 kladml init
+
+# Launch Interactive TUI
+kladml ui
 
 # Quick training (no database setup required)
 kladml train quick \
