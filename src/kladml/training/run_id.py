@@ -33,13 +33,13 @@ def generate_run_id(
     log_dir = Path(base_dir) / project_name / experiment_name
     log_dir.mkdir(parents=True, exist_ok=True)
     
-    # Find existing runs
-    existing_runs = list(log_dir.glob("run_*.jsonl")) + list(log_dir.glob("run_*.log"))
+    # Find existing runs (directories starting with run_)
+    existing_run_dirs = [p for p in log_dir.glob("run_*") if p.is_dir()]
     
     # Extract run numbers
     run_numbers = []
     pattern = re.compile(r"run_(\d+)_")
-    for path in existing_runs:
+    for path in existing_run_dirs:
         match = pattern.search(path.name)
         if match:
             run_numbers.append(int(match.group(1)))
