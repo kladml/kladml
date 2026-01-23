@@ -55,7 +55,16 @@ class TestWorkerExecution:
         assert "Device: cpu" in result.stdout or "Actual: cpu" in result.stdout
         assert "FULL SUCCESS" in result.stdout
 
-    @pytest.mark.skipif(not subprocess.run(["nvidia-smi"], capture_output=True).returncode == 0, reason="No NVIDIA GPU detected")
+    # GPU Detection
+    try:
+        has_cuda = subprocess.run(["nvidia-smi"], capture_output=True).returncode == 0
+    except (FileNotFoundError, OSError):
+        has_cuda = False
+        
+    import platform
+    has_mps = platform.system() == "Darwin" and platform.processor() == "arm"
+    
+    @pytest.mark.skipif(not (has_cuda or has_mps), reason="No GPU (CUDA or MPS) detected")
     def test_cuda_worker(self):
         """Test CUDA execution (only if GPU present)."""
         # Ensure CUDA image exists
