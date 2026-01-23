@@ -32,7 +32,6 @@ class Project(SQLModel, table=True):
     
     # Relationships
     families: List["Family"] = Relationship(back_populates="project")
-    runs: List["Run"] = Relationship(back_populates="project")
 
 class Family(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -66,24 +65,3 @@ class Dataset(SQLModel, table=True):
     data_type: DataType = Field(default=DataType.OTHER)
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
-class Run(SQLModel, table=True):
-    id: str = Field(default_factory=lambda: f"run_{uuid4().hex[:8]}", primary_key=True)
-    project_id: int = Field(foreign_key="project.id")
-    experiment_name: str = Field(index=True)
-    
-    status: RunStatus = Field(default=RunStatus.PENDING)
-    
-    # Store complex data as JSON
-    config: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    metrics: Dict[str, float] = Field(default={}, sa_column=Column(JSON))
-    tags: Dict[str, str] = Field(default={}, sa_column=Column(JSON))
-    
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    end_time: Optional[datetime] = None
-    
-    # Artifacts location
-    artifacts_uri: Optional[str] = None
-    
-    # Relationships
-    project: Project = Relationship(back_populates="runs")

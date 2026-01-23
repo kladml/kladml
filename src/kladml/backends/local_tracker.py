@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, List
 import logging
 
 from kladml.interfaces import TrackerInterface
+from kladml.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +32,10 @@ class LocalTracker(TrackerInterface):
         """
         self.tracking_dir = Path(tracking_dir).resolve()
         
-        from kladml.db.session import get_db_url
         
-        # Centralized MLflow Tracking (Same as KladML DB)
-        self._tracking_uri = get_db_url()
+        # Centralized MLflow Tracking (from settings)
+        # Defaults to shared SQLite DB if not configured otherwise
+        self._tracking_uri = settings.mlflow_tracking_uri
         
         # Artifacts remain in project directory (managed by CheckpointManager),
         # but MLflow needs a place for its own artifacts (like temp models).
