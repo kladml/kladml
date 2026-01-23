@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to KladML! We welcome contributions from the community to help make this project better.
 
-## code of Conduct
+## Code of Conduct
 
 Please adhere to our Code of Conduct in all interactions with the community.
 
