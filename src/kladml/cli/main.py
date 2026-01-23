@@ -9,7 +9,9 @@ Provides a rich CLI for:
 """
 
 import typer
+import logging
 from rich.console import Console
+from kladml.config.settings import settings
 
 app = typer.Typer(
     name="kladml",
@@ -17,6 +19,23 @@ app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
 )
+
+@app.callback()
+def main(ctx: typer.Context):
+    """
+    Manage KladML projects and experiments.
+    """
+    # Configure logging
+    log_level = logging.DEBUG if settings.debug else logging.INFO
+    
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    
+    if settings.debug:
+        logging.getLogger("kladml").setLevel(logging.DEBUG)
 
 console = Console()
 
