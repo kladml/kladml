@@ -234,10 +234,17 @@ class ProjectLogger(Callback):
         """Log epoch end with metrics."""
         self.info(f"Epoch {epoch} completed", logs)
     
+    
     def on_batch_end(self, batch: int, logs: Optional[Dict] = None) -> None:
         """Log batch (only every N batches to avoid spam)."""
         if batch % 100 == 0:
             self.debug(f"Batch {batch}", logs)
+            
+    def log_metrics(self, data: Dict[str, Any]) -> None:
+        """Alias for logging generic metric updates (e.g. intra-epoch)."""
+        # We assume 'info' level for significant metric updates
+        # Optionally, we can make the message generic
+        self.log("info", "Metric Update", data)
     
     @property
     def log_path(self) -> str:

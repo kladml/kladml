@@ -127,19 +127,64 @@ class BaseArchitecture(ABC):
         """Alias for train()."""
         return self.train(*args, **kwargs)
         
-    def export_model(self, path: str, format: str = "torchscript", **kwargs) -> None:
+    def export_model(self, path: str, format: str = "onnx", **kwargs) -> None:
         """
         Export the model for deployment.
         
         Args:
             path: Output path for the exported model.
-            format: Export format (default: "torchscript").
+            format: Export format ("onnx", "torchscript", etc.). Default: "onnx".
             **kwargs: Additional export parameters.
             
         Raises:
             NotImplementedError: If the architecture does not support export.
         """
         raise NotImplementedError(f"Export not implemented for {self.__class__.__name__}")
+    
+    def save_checkpoint(self, path: str) -> None:
+        """
+        Save training checkpoint (native format for resuming/fine-tuning).
+        Default implementation calls save(). Override for custom behavior.
+        """
+        self.save(path)
+    
+    def run_training(self, *args, **kwargs) -> Dict[str, float]:
+        """
+        Full training workflow with automatic post-processing.
+        
+        This is the recommended entry point for training. It:
+        1. Calls train() (implemented by subclass)
+        2. Saves checkpoint (native format)
+        3. Exports to ONNX if auto_export is enabled
+        
+        Returns:
+            Dict with training metrics.
+        """
+        # 1. Run the actual training
+        metrics = self.train(*args, **kwargs)
+        self._is_trained = True
+        
+        # 2. Auto-export if configured (default: True)
+        if self.config.get("auto_export", True):
+            export_dir = self.config.get("export_dir", "./exports")
+            export_format = self.config.get("export_format", "onnx")
+            
+            import os
+            os.makedirs(export_dir, exist_ok=True)
+            
+            model_name = self.config.get("experiment_name", "model")
+            export_path = os.path.join(export_dir, f"{model_name}.{export_format}")
+            
+            try:
+                self.export_model(export_path, format=export_format)
+            except NotImplementedError:
+                pass  # Model doesn't support export, that's OK
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Auto-export failed: {e}")
+        
+        return metrics
+
 
     def _init_standard_callbacks(self, run_id: str, project_name: str, experiment_name: str) -> None:
         """

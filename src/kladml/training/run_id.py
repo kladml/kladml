@@ -16,7 +16,8 @@ from typing import Optional
 def generate_run_id(
     project_name: str,
     experiment_name: str,
-    base_dir: str = "./projects",
+    family_name: Optional[str] = None,
+    base_dir: str = "data/projects",
 ) -> str:
     """
     Generate a new run ID with format: run_XXX_YYYYMMDD_HHMM
@@ -24,14 +25,19 @@ def generate_run_id(
     Args:
         project_name: Project name
         experiment_name: Experiment name
+        family_name: Optional family/domain name (e.g., "canbus_anomaly")
         base_dir: Base directory for projects
         
     Returns:
         Run ID string like "run_001_20260115_2317"
     """
-    # Find the log directory
-    log_dir = Path(base_dir) / project_name / experiment_name
+    # Build path: base/project/[family/]experiment
+    if family_name:
+        log_dir = Path(base_dir) / project_name / family_name / experiment_name
+    else:
+        log_dir = Path(base_dir) / project_name / experiment_name
     log_dir.mkdir(parents=True, exist_ok=True)
+
     
     # Find existing runs (directories starting with run_)
     existing_run_dirs = [p for p in log_dir.glob("run_*") if p.is_dir()]
