@@ -22,8 +22,6 @@ What's coming in future versions of KladML.
 
 ## v0.6.x - Core CLI Enhancements
 
-**Expected: Q1 2026**
-
 Complete the core command-line workflow:
 
 - [ ] **Enhanced Training** - `kladml train --config <path>` with better progress tracking
@@ -38,8 +36,6 @@ Complete the core command-line workflow:
 
 ## v0.7.x - Preprocessing Pipelines
 
-**Expected: Q2 2026**
-
 Composable data preprocessing:
 
 - [ ] **YAML Pipeline Definition** - Define preprocessing steps in config
@@ -51,8 +47,6 @@ Composable data preprocessing:
 
 ## v0.8.x - TUI Improvements
 
-**Expected: Q2 2026**
-
 Enhancements to the existing Terminal UI:
 
 - [ ] **Live Training Monitor** - Real-time loss curves in terminal
@@ -63,8 +57,6 @@ Enhancements to the existing Terminal UI:
 ---
 
 ## v0.9.x - Smart Config Generator
-
-**Expected: Q3 2026**
 
 Intelligent configuration assistant:
 
@@ -81,8 +73,6 @@ Intelligent configuration assistant:
 
 ## v0.10.x - Universal Quickstart (Optional)
 
-**Expected: Q3-Q4 2026**
-
 One-command training for demos and onboarding:
 
 - [ ] **Quickstart Command** - `kladml quickstart --data <path>`
@@ -94,8 +84,6 @@ One-command training for demos and onboarding:
 ---
 
 ## v1.0.0 - Stable Release
-
-**Expected: Q4 2026**
 
 First stable release with:
 
