@@ -2,6 +2,7 @@
 # Core dependencies
 numpy>=1.21.0
 pyyaml>=6.0
+torch>=2.0.0
 
 # CLI
 typer[all]>=0.9.0
@@ -12,6 +13,11 @@ pydantic-settings>=2.0.0
 
 # Tracking
 mlflow>=3.0.0,<4.0.0
+
+# Export / Deployment
+onnx>=1.14.0
+onnxruntime>=1.15.0
+onnxscript>=0.1.0
 
 # Development
 pytest>=7.0

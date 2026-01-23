@@ -16,16 +16,19 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.13"
 dependencies = [
     "numpy>=1.21.0",
     "pyyaml>=6.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
-    "mlflow>=3.0.0,<4.0.0",
     "sqlalchemy>=2.0.0",
+    "torch>=2.0.0",
+    "onnx>=1.14.0",
+    "onnxruntime>=1.15.0",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +37,9 @@ cli = [
     "rich>=13.0.0",
     "textual>=0.40.0",
 ]
+tracking = [
+    "mlflow>=3.0.0,<4.0.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -41,10 +47,10 @@ dev = [
     "build>=1.0.0",
     "twine>=4.0.0",
 ]
-tracking = [
-    "mlflow>=3.0.0,<4.0.0",
-]
 all = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "textual>=0.40.0",
     "mlflow>=3.0.0,<4.0.0",
 ]
 
