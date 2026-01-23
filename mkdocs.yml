@@ -31,6 +31,7 @@ nav:
   - Core Concepts: core_concepts.md
   - Architecture: architecture.md
   - CLI Reference: cli.md
+  - Roadmap: roadmap.md
 
 markdown_extensions:
   - pymdownx.highlight:
