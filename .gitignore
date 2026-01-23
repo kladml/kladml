@@ -1,3 +1,4 @@
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -86,9 +87,6 @@ mlflow.db
 data/projects/
 data/models/
 data/logs/
-projects/
-models/
-models/
 *.log
 
 # Generated version file
@@ -104,8 +102,6 @@ temp_chunks/
 __pycache__/
 *.parquet
 *.h5
-
-private_docs/
 
 # Examples (volant scripts to be integrated into CLI)
 examples/
