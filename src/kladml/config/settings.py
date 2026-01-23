@@ -7,7 +7,7 @@ Pydantic settings with environment variable support.
 import os
 from typing import Optional
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class KladMLSettings(BaseSettings):
@@ -50,10 +50,11 @@ class KladMLSettings(BaseSettings):
         from kladml.db.session import get_db_path
         return f"sqlite:///{get_db_path()}"
     
-    class Config:
-        env_prefix = "KLADML_"
-        env_file = ".env"
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_prefix="KLADML_",
+        env_file=".env",
+        extra="ignore"
+    )
 
 
 # Global settings instance

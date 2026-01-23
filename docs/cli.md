@@ -539,10 +539,9 @@ kladml compare --runs run_001,run_002,run_003 --metric accuracy --output compari
 ```
 
 **Output:**
-- Overlay loss curves (one line per run)
-- Overlay CDF curves (for anomaly detection)
-- Bar chart comparison (final metrics side-by-side)
-- Comparison saved to `data/comparisons/<comparison_id>/`
+- Tabular comparison of Metrics (all logged metrics)
+- Tabular comparison of Parameters (hyperparameters, config)
+- Side-by-side view for direct analysis
 
 ---
 

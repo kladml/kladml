@@ -91,9 +91,6 @@ models/
 models/
 *.log
 
-# Private / Experimental Architectures
-src/kladml/architectures/
-
 # Generated version file
 src/kldml/_version.py
 src/kladml/_version.py

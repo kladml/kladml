@@ -20,7 +20,7 @@
 |---------|--------|--------|---------|
 | **Interface-based** | ✅ Pluggable | ❌ Hardcoded | ❌ Hardcoded |
 | **Server required** | ❌ No | ⚠️ Optional | ✅ Yes |
-| **Local-first** | ✅ SQLite default | ✅ Yes | ❌ No |
+| **Local-first** | ✅ Unified SQLite DB | ✅ Yes | ❌ No |
 | **Learning curve** | 🟢 Minutes | 🟡 Days | 🔴 Weeks |
 | **Hierarchy** | ✅ Workspace/Proj/Fam | ❌ Exp/Run | ❌ Project/task |
 | **User Interface** | ✅ TUI (Terminal) | ⚠️ Web UI | ✅ Web UI |
@@ -35,7 +35,7 @@
 pip install kladml
 
 # Full CLI (for terminal usage with TUI)
-pip install "kladml[cli]"
+pip install -e ".[all]"
 ```
 
 ## Quick Start
@@ -206,6 +206,7 @@ kladml train single ...       # Full training with project/experiment
 # Evaluation
 kladml eval run ...           # Evaluate a model
 kladml eval info              # Show available evaluators
+kladml compare --runs r1,r2   # Compare runs side-by-side
 
 # Data
 kladml data inspect <path>    # Analyze a dataset

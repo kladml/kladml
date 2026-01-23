@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-01-23
+
+### Added
+- **Unified Database:** Integrated KladML metadata and MLflow tracking into a single SQLite database (`~/.kladml/kladml.db`), simplifying configuration and backups.
+- **Compare Command:** New `kladml compare` CLI command for side-by-side run comparison of metrics and parameters.
+- **TUI Updates:** Added multi-select and comparison interface to the Terminal User Interface (`kladml ui`), enabling direct run analysis.
+- **Migration Tool:** Added `scripts/migrate_mlruns_to_sqlite.py` to seamlessly migrate existing MLflow FileStore data to the unified DB.
+
+### Changed
+- **Pydantic V2:** Updated configuration settings to fully comply with Pydantic V2 standards, removing deprecation warnings.
+- **Date Handling:** Standardized on `timezone.utc` for internal timestamps, resolving datetime warnings.
+- **Dependencies:** Added `sqlmodel` as a core dependency for the unified database layer.
+
 ## [0.5.2] - 2026-01-23
 
 ### Added
