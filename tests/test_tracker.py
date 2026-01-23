@@ -7,13 +7,23 @@ import shutil
 import tempfile
 from pathlib import Path
 from kladml.backends.local_tracker import LocalTracker
+from kladml.config.settings import settings
 
 @pytest.fixture
 def tracker():
-    """Create a tracker with a temporary directory."""
+    """Create a tracker with a temporary database."""
     temp_dir = tempfile.mkdtemp()
+    db_path = Path(temp_dir) / "test_tracker.db"
+    
+    # Patch settings to use isolated DB
+    original_uri = settings.mlflow_tracking_uri
+    settings.mlflow_tracking_uri = f"sqlite:///{db_path}"
+    
     tracker = LocalTracker(tracking_dir=temp_dir)
     yield tracker
+    
+    # Cleanup
+    settings.mlflow_tracking_uri = original_uri
     shutil.rmtree(temp_dir)
 
 def test_tracker_initialization(tracker):

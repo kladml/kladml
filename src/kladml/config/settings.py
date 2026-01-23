@@ -6,6 +6,7 @@ Pydantic settings with environment variable support.
 
 import os
 from typing import Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -38,7 +39,16 @@ class KladMLSettings(BaseSettings):
     s3_bucket: str = "kladml"
     
     # MLflow Configuration
-    mlflow_tracking_uri: str = "http://localhost:5000"
+    mlflow_tracking_uri: Optional[str] = None
+
+    @field_validator("mlflow_tracking_uri", mode="before")
+    @classmethod
+    def set_default_mlflow_uri(cls, v: Optional[str]) -> str:
+        if v:
+            return v
+        # Default to local SQLite DB: sqlite:///home/user/.kladml/kladml.db
+        from kladml.db.session import get_db_path
+        return f"sqlite:///{get_db_path()}"
     
     class Config:
         env_prefix = "KLADML_"
