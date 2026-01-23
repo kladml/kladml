@@ -300,5 +300,52 @@ def convert_dataset(
         console.print(f"[red]Conversion failed:[/red] {e}")
         raise typer.Exit(code=1)
 
+@app.command("process")
+def process_data(
+    input_source: str = typer.Option(..., "--input", "-i", help="Input data (directory or file)"),
+    pipeline_config: str = typer.Option(..., "--pipeline", "-p", help="Path to pipeline YAML config"),
+) -> None:
+    """
+    Run a data processing pipeline defined in YAML.
+    
+    The pipeline is composed of registered components (Parsers, Cleaners, Splitters).
+    
+    Example:
+        kladml data process -i data/raw -p config/canbus_pipeline.yaml
+    """
+    from kladml.data.pipeline import DataPipeline
+    from kladml.data.defaults import register_all_components
+    
+    console.print(f"[bold]Running Data Pipeline...[/bold]")
+    console.print(f"Input: {input_source}")
+    console.print(f"Config: {pipeline_config}")
+    
+    # 1. Register Components
+    register_all_components()
+    
+    # 2. Load Pipeline
+    try:
+        pipeline = DataPipeline.from_yaml(pipeline_config)
+    except Exception as e:
+        console.print(f"[bold red]Error loading pipeline:[/bold red] {e}")
+        raise typer.Exit(code=1)
+        
+    # 3. Execute
+    try:
+        # We pass input_source to the first component
+        result = pipeline.transform(input_source)
+        
+        # If result is a dict (splitter) or string (file path), print it
+        if isinstance(result, (str, dict)):
+            console.print(f"[green]✓ Pipeline complete![/green]")
+            console.print(f"Result: {result}")
+        else:
+             console.print(f"[green]✓ Pipeline complete![/green]")
+             
+    except Exception as e:
+        console.print(f"[red]Pipeline execution failed:[/red] {e}")
+        raise typer.Exit(code=1)
+
+
 if __name__ == "__main__":
     app()
