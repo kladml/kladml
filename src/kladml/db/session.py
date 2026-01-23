@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from kladml.db.models import Base
+from sqlmodel import SQLModel
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def init_db() -> None:
     Safe to call multiple times.
     """
     engine = _get_engine()
-    Base.metadata.create_all(bind=engine)
+    SQLModel.metadata.create_all(bind=engine)
     logger.info(f"Database initialized: {get_db_path()}")
 
 
@@ -152,8 +152,8 @@ def reset_db() -> None:
     global _engine, _session_factory
     
     engine = _get_engine()
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    SQLModel.metadata.drop_all(bind=engine)
+    SQLModel.metadata.create_all(bind=engine)
     
     # Dispose engine to release file locks
     engine.dispose()
