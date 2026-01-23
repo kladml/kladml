@@ -217,6 +217,7 @@ KladML uses a modular interface-based design. This ensures your training code is
 
 - [Architecture](architecture.md) - Model contracts and design patterns
 - [CLI Reference](cli.md) - Command-line interface
+- [Roadmap](roadmap.md) - Planned features
 
 ---
 

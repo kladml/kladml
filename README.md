@@ -40,6 +40,26 @@ pip install "kladml[cli]"
 
 ## Quick Start
 
+### Zero to Training in 60 Seconds
+
+```bash
+# The universal quickstart - auto-detects data type and suggests pipeline
+kladml quickstart --data my_data.csv
+
+# Output:
+# 📊 Analyzing data...
+#    Data type: TABULAR (5 columns, 1000 rows)
+#
+# ? What task do you want to perform?
+#   > Classification (detected 'label' column)
+#
+# 🔧 Selected: XGBoostClassifier + ClassificationEvaluator
+# 🚀 Training...
+# ✅ Complete! Results saved to data/projects/quickstart/run_001/
+```
+
+### Traditional Workflow
+
 ```bash
 # Initialize workspace
 kladml init
@@ -47,22 +67,14 @@ kladml init
 # Launch Interactive TUI
 kladml ui
 
-# Quick training (no database setup required)
-kladml train quick \
-    --config data/configs/my_config.yaml \
-    --train data/datasets/train.pkl \
-    --val data/datasets/val.pkl
+# Manual training with config
+kladml train --config data/configs/my_config.yaml
 
 # Evaluate a trained model
-kladml eval run \
-    --checkpoint path/to/best_model_jit.pt \
-    --data data/datasets/test.pkl
+kladml eval --run run_001 --evaluator AnomalyEvaluator
 
-# Resume interrupted training
-kladml train quick \
-    --config data/configs/my_config.yaml \
-    --train data/datasets/train.pkl \
-    --resume
+# Hyperparameter tuning with Optuna
+kladml tune --config config.yaml --n-trials 50
 ```
 
 ### Create Your Model
@@ -95,6 +107,16 @@ result = runner.run(
     experiment_name="my-experiment",
 )
 ```
+
+
+## Supported Data Types
+
+| Data Type | Auto-Detection | Default Pipeline |
+|-----------|----------------|------------------|
+| **TABULAR** | CSV/Parquet with numeric columns | XGBoost |
+| **TIMESERIES** | Has datetime column/index | Transformer/Gluformer |
+| **IMAGE** | Folder with JPG/PNG | ResNet50 |
+| **TEXT** | CSV with text columns | BERT |
 
 ---
 

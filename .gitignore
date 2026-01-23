@@ -81,7 +81,6 @@ mlflow.db
 # KladML local data and outputs
 /data/
 /artifacts/
-/scripts/
 
 # Training outputs (will be in data/ after cleanup)
 data/projects/
@@ -89,7 +88,11 @@ data/models/
 data/logs/
 projects/
 models/
+models/
 *.log
+
+# Private / Experimental Architectures
+src/kladml/architectures/
 
 # Generated version file
 src/kldml/_version.py
@@ -98,3 +101,14 @@ src/kladml/_version.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary Data
+temp_chunks/
+__pycache__/
+*.parquet
+*.h5
+
+private_docs/
+
+# Examples (volant scripts to be integrated into CLI)
+examples/

@@ -5,124 +5,179 @@ This guide will get you up and running with KladML in under 5 minutes.
 ## Installation
 
 ```bash
+# Core library (lightweight, no UI)
 pip install kladml
+
+# Full CLI with Terminal UI
+pip install "kladml[cli]"
 ```
-
-This installs:
-
-- The `kladml` Python package
-- MLflow for experiment tracking
-- CLI commands (`kladml init`, `kladml run`, etc.)
 
 ### Verify Installation
 
 ```bash
 kladml version
-# KladML version 0.1.0
+# KladML version X.X.X
 ```
 
 ---
 
-## Create Your First Project
+## Option 1: Universal Quickstart (Recommended)
+
+**Zero to Training in 60 Seconds** - Just point KladML at your data:
 
 ```bash
-kladml init my-project
-cd my-project
+kladml quickstart --data my_data.csv
 ```
 
-This creates:
+KladML will:
 
-```
-my-project/
-├── kladml.yaml      # Project configuration
-├── train.py         # Example training script
-├── data/            # Dataset directory
-├── models/          # Saved models
-└── experiments/     # Experiment outputs
+1. 📊 **Analyze** your data (detect type: tabular, timeseries, image, text)
+2. 🎯 **Suggest** a task (classification, regression, anomaly, etc.)
+3. 🔧 **Select** the best pipeline (preprocessors + architecture + evaluator)
+4. 🚀 **Train** the model
+5. 📈 **Evaluate** and generate a report
+
+### Supported Data Types
+
+| Data Type | Auto-Detection | Example Pipeline |
+|-----------|----------------|------------------|
+| TABULAR | Numeric CSV/Parquet | XGBoost + StandardScaler |
+| TIMESERIES | Has datetime column | Transformer + Window |
+| IMAGE | Folder of JPG/PNG | ResNet50 Transfer |
+| TEXT | CSV with text columns | BERT Classifier |
+
+---
+
+## Option 2: Interactive TUI
+
+Launch the Terminal User Interface for a guided experience:
+
+```bash
+kladml ui
 ```
 
 ---
 
-## Run Training
+## Option 3: Traditional Workflow
 
-KladML provides a generic training command that works with any model architecture.
-
-### 1. (Optional) Convert Data
-
-For large datasets, convert to HDF5 for lazy loading:
+### Initialize a Project
 
 ```bash
-kladml data convert \
-    --input data/datasets/dataset.pkl \
-    --output data/datasets/dataset.h5
+kladml init
 ```
 
-### 2. Train a Model
+This creates the standard directory structure:
 
-Run a single training experiment:
-
-```bash
-kladml train single \
-    --model gluformer \
-    --data data/datasets/dataset.h5 \
-    --project my-project \
-    --experiment baseline
+```
+data/
+├── kladml.sqlite        # Local database
+├── configs/             # YAML configurations
+├── datasets/            # Your data
+└── projects/            # Training results
+    └── {project}/
+        └── {run_id}/
+            ├── config.yaml
+            ├── checkpoints/
+            ├── exports/
+            └── evaluations/
 ```
 
-- `--model`: Name of the architecture (e.g., `gluformer`) or path to a Python file.
-- `--data`: Path to your training data (PKL or HDF5).
-
-### 3. Grid Search
-
-Run a grid search over hyperparameters defined in a YAML config:
+### Train with Config
 
 ```bash
-# config.yaml (see documentation for format)
-# ... grid search params ...
+kladml train --config data/configs/my_experiment.yaml
+```
 
-kladml train grid \
-    --model gluformer \
-    --config config.yaml \
-    --project my-project \
-    --experiment hyperparam-tuning
+Example config:
+
+```yaml
+project: my-project
+experiment: baseline_v1
+
+dataset: my_data/processed
+architecture: TransformerAutoencoder
+params:
+  d_model: 64
+  n_heads: 4
+
+training:
+  epochs: 50
+  batch_size: 128
+
+export:
+  auto: true
+  format: onnx
+
+evaluation:
+  auto: true
+  evaluator: AnomalyEvaluator
+```
+
+### Evaluate a Run
+
+```bash
+kladml eval --run run_001 --evaluator AnomalyEvaluator --plots cdf,loglog
+```
+
+### Compare Runs
+
+```bash
+kladml compare --runs run_001,run_002 --metric val_loss
+```
+
+---
+
+## Hyperparameter Tuning
+
+Use Optuna integration for automated hyperparameter search:
+
+```bash
+kladml tune --config config.yaml --n-trials 50 --timeout 3600
 ```
 
 ---
 
 ## Create Custom Models
 
-To add your own model architecture:
-
-1. Create a file `my_model.py`
-2. Inherit from `TimeSeriesModel` (or similar base class)
-3. Implement `train`, `predict`, `evaluate`
-
 ```python
-# my_model.py
-from kladml import TimeSeriesModel, MLTask
+from kladml import BaseArchitecture, MLTask
 
-class MyModel(TimeSeriesModel):
-    # ... implementation ...
-    pass
+class MyModel(BaseArchitecture):
+    
+    @property
+    def ml_task(self):
+        return MLTask.CLASSIFICATION
+    
+    def train(self, X_train, y_train=None, **kwargs):
+        # Your training logic
+        return {"accuracy": 0.95}
+    
+    def predict(self, X, **kwargs):
+        return predictions
+    
+    def evaluate(self, X_test, y_test=None, **kwargs):
+        return {"accuracy": 0.93, "f1": 0.91}
+    
+    def save(self, path: str):
+        # Save model artifacts
+        pass
+    
+    def load(self, path: str):
+        # Load model artifacts
+        pass
 ```
 
-Then train it using the CLI:
+Register it:
 
 ```bash
-kladml train single --model my_model.py --data ...
+kladml register architecture --name MyModel --module my_model.MyModel
 ```
 
----
-
-## View Experiments
-
-KladML uses MLflow for tracking. View your experiments:
+Then use it:
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///data/projects/mlflow.db
+kladml train --config config.yaml  # config references "MyModel"
 ```
-
-Open http://localhost:5000 in your browser.
 
 ---
 
@@ -130,4 +185,5 @@ Open http://localhost:5000 in your browser.
 
 - [Core Concepts](core_concepts.md) - Understand interfaces and architecture
 - [Architecture](architecture.md) - Deep dive into model contracts
+- [Roadmap](roadmap.md) - Planned features
 - [CLI Reference](cli.md) - All available commands

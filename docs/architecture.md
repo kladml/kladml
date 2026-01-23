@@ -100,7 +100,7 @@ class MyClassifier(ClassificationModel):
 
 ## MLTask Enum
 
-Defines the problem type your model solves. This helps the platform visualize and evaluate results correctly.
+Defines the problem type your model solves. This helps the framework visualize and evaluate results correctly.
 
 ```python
 from kladml import MLTask

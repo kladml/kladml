@@ -415,3 +415,190 @@ KladML respects these environment variables:
 | `KLADML_TRAINING_DEVICE` | Override default device (`cpu`, `cuda`, `mps`) |
 | `KLADML_STORAGE_ARTIFACTS_DIR` | Directory for saving artifacts |
 | `KLADML_EXPERIMENT` | Default experiment name |
+
+---
+
+## Quickstart Command
+
+### `kladml quickstart`
+
+**Zero to Training in 60 Seconds** - The universal quickstart command that auto-detects your data type and suggests the best pipeline.
+
+```bash
+kladml quickstart --data <path> [OPTIONS]
+```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `--data`, `-d` | Path to your data (CSV, Parquet, folder) |
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--task`, `-t` | (auto) | Force a specific task: `classification`, `regression`, `anomaly`, `forecast`, `clustering` |
+| `--target` | (auto) | Target column for supervised tasks |
+| `--output`, `-o` | `data/projects/quickstart/` | Output directory for results |
+
+**Supported Data Types:**
+
+| Data Type | Detection | Default Pipeline |
+|-----------|-----------|------------------|
+| TABULAR | Numeric CSV/Parquet columns | XGBoost |
+| TIMESERIES | Has datetime column/index | Transformer |
+| IMAGE | Folder with JPG/PNG | ResNet50 |
+| TEXT | CSV with text columns | BERT |
+
+**Examples:**
+
+```bash
+# Auto-detect everything
+kladml quickstart --data customers.csv
+
+# Force classification with specific target
+kladml quickstart --data customers.csv --task classification --target churn
+
+# Image classification
+kladml quickstart --data ./images/
+
+# Time series anomaly detection
+kladml quickstart --data sensor_data.parquet --task anomaly
+```
+
+---
+
+## Hyperparameter Tuning
+
+### `kladml tune`
+
+Run automated hyperparameter tuning using Optuna.
+
+```bash
+kladml tune [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--config`, `-c` | Yes | Path to YAML config file |
+| `--n-trials`, `-n` | No | Number of trials (default: 50) |
+| `--timeout` | No | Maximum tuning time in seconds |
+| `--pruner` | No | Pruning strategy: `median`, `hyperband` (default: `median`) |
+| `--study-name` | No | Name for the Optuna study |
+| `--storage` | No | Database URL for distributed tuning |
+
+**Examples:**
+
+```bash
+# Basic tuning
+kladml tune --config config.yaml --n-trials 50
+
+# With timeout
+kladml tune --config config.yaml --n-trials 100 --timeout 3600
+
+# Distributed tuning with shared database
+kladml tune --config config.yaml --storage sqlite:///optuna.db --study-name my-study
+```
+
+**Output:**
+- Best configuration saved to `best_config.yaml`
+- Optimization history plot
+- Parameter importance plot
+
+---
+
+## Run Comparison
+
+### `kladml compare`
+
+Compare multiple training runs visually.
+
+```bash
+kladml compare --runs <run_ids> [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--runs`, `-r` | Yes | Comma-separated list of run IDs |
+| `--metric`, `-m` | No | Metric to compare (default: `val_loss`) |
+| `--output`, `-o` | No | Output directory for comparison plots |
+
+**Examples:**
+
+```bash
+# Compare two runs
+kladml compare --runs run_001,run_002 --metric val_loss
+
+# Compare multiple runs
+kladml compare --runs run_001,run_002,run_003 --metric accuracy --output comparisons/
+```
+
+**Output:**
+- Overlay loss curves (one line per run)
+- Overlay CDF curves (for anomaly detection)
+- Bar chart comparison (final metrics side-by-side)
+- Comparison saved to `data/comparisons/<comparison_id>/`
+
+---
+
+## Component Registration
+
+### `kladml register`
+
+Register custom components (architectures, preprocessors, evaluators).
+
+```bash
+kladml register <component_type> [OPTIONS]
+```
+
+**Component Types:**
+
+| Type | Description |
+|------|-------------|
+| `architecture` | Custom model architecture |
+| `preprocessor` | Custom data preprocessor |
+| `evaluator` | Custom evaluator |
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--name`, `-n` | Yes | Name for the component |
+| `--module`, `-m` | Yes | Python module path (e.g., `my_pkg.MyClass`) |
+| `--description` | No | Description of the component |
+
+**Examples:**
+
+```bash
+# Register a custom architecture
+kladml register architecture --name MyTransformer --module my_models.MyTransformer
+
+# Register a custom preprocessor
+kladml register preprocessor --name MyScaler --module my_transforms.MyScaler
+
+# Register a custom evaluator
+kladml register evaluator --name MyEvaluator --module my_eval.MyEvaluator
+```
+
+### `kladml list`
+
+List registered components.
+
+```bash
+kladml list <component_type>
+```
+
+**Examples:**
+
+```bash
+kladml list architectures
+kladml list preprocessors
+kladml list evaluators
+kladml list datasets
+kladml list runs
+```
