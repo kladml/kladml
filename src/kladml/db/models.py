@@ -1,154 +1,89 @@
-"""
-SQLAlchemy models for KladML SDK.
-
-Contains Project and Family models - experiments and runs are managed by MLflow.
-"""
-
-import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, List, Dict, Any
+from enum import Enum
+from uuid import UUID, uuid4
+from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy import Column, JSON
 
-from sqlalchemy import Column, String, DateTime, Text, JSON, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
+# --- Enums ---
 
-Base = declarative_base()
+class RunStatus(str, Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    STOPPED = "stopped"
 
+class DataType(str, Enum):
+    TABULAR = "tabular"
+    TIMESERIES = "timeseries"
+    IMAGE = "image"
+    TEXT = "text"
+    OTHER = "other"
 
-def generate_uuid() -> str:
-    """Generate a short UUID for IDs."""
-    return str(uuid.uuid4())[:8]
+# --- Models ---
 
-
-class Dataset(Base):
-    """
-    Dataset model.
-    
-    Represents a dataset stored in data/datasets/.
-    
-    Attributes:
-        id: Unique identifier
-        name: Dataset name (directory name)
-        path: Relative path from workspace root
-        description: Optional description
-        created_at: Creation timestamp
-    """
-    __tablename__ = "local_datasets"
-    
-    id: str = Column(String(8), primary_key=True, default=generate_uuid)
-    name: str = Column(String(255), unique=True, nullable=False, index=True)
-    path: str = Column(String(512), nullable=False)
-    description: Optional[str] = Column(Text, nullable=True)
-    created_at: datetime = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "id": self.id,
-            "name": self.name,
-            "path": self.path,
-            "description": self.description,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-        }
-
-
-class Project(Base):
-    """
-    Project model.
-    
-    A project is a top-level container that groups related families.
-    
-    Hierarchy: Project > Family > Experiment > Run
-    
-    Attributes:
-        id: Unique identifier (8-char UUID)
-        name: Human-readable project name (unique)
-        description: Optional project description
-        created_at: Creation timestamp
-        updated_at: Last update timestamp
-    """
-    __tablename__ = "projects"
-    
-    id: str = Column(String(8), primary_key=True, default=generate_uuid)
-    name: str = Column(String(255), unique=True, nullable=False, index=True)
-    description: Optional[str] = Column(Text, nullable=True)
-    created_at: datetime = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+class Project(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
-    families = relationship("Family", back_populates="project", cascade="all, delete-orphan")
-    
-    @property
-    def family_count(self) -> int:
-        """Count of families in this project."""
-        return len(self.families) if self.families else 0
-    
-    def __repr__(self) -> str:
-        return f"<Project(id={self.id}, name={self.name})>"
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "family_count": len(self.families) if self.families else 0,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-        }
+    families: List["Family"] = Relationship(back_populates="project")
+    runs: List["Run"] = Relationship(back_populates="project")
 
-
-class Family(Base):
-    """
-    Family model.
+class Family(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    description: Optional[str] = None
+    project_id: int = Field(foreign_key="project.id")
     
-    A family groups related experiments within a project by domain/purpose.
-    Example: "glucose_forecasting", "driving_anomaly"
+    # Store experiment names as a JSON list of strings
+    experiment_names: List[str] = Field(default=[], sa_column=Column(JSON))
     
-    Hierarchy: Project > Family > Experiment > Run
-    
-    Attributes:
-        id: Unique identifier (8-char UUID)
-        name: Family name (unique within project)
-        project_id: FK to parent project
-        description: Optional description
-        experiment_names: List of MLflow experiment names
-        created_at: Creation timestamp
-    """
-    __tablename__ = "families"
-    
-    id: str = Column(String(8), primary_key=True, default=generate_uuid)
-    name: str = Column(String(255), nullable=False, index=True)
-    project_id: str = Column(String(8), ForeignKey("projects.id"), nullable=False)
-    description: Optional[str] = Column(Text, nullable=True)
-    experiment_names: List[str] = Column(JSON, default=list)
-    created_at: datetime = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
-    project = relationship("Project", back_populates="families")
+    project: Project = Relationship(back_populates="families")
     
-    def __repr__(self) -> str:
-        return f"<Family(id={self.id}, name={self.name}, project_id={self.project_id})>"
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "project_id": self.project_id,
-            "description": self.description,
-            "experiment_names": self.experiment_names or [],
-            "experiment_count": len(self.experiment_names) if self.experiment_names else 0,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-        }
-    
-    def add_experiment(self, experiment_name: str) -> None:
-        """Add an MLflow experiment to this family."""
-        if self.experiment_names is None:
-            self.experiment_names = []
+    # Methods for backward compatibility
+    def add_experiment(self, experiment_name: str):
         if experiment_name not in self.experiment_names:
+            # Create a new list to ensure SQLAlchemy detects the change
             self.experiment_names = self.experiment_names + [experiment_name]
-    
-    def remove_experiment(self, experiment_name: str) -> None:
-        """Remove an MLflow experiment from this family."""
-        if self.experiment_names and experiment_name in self.experiment_names:
+            
+    def remove_experiment(self, experiment_name: str):
+        if experiment_name in self.experiment_names:
             self.experiment_names = [e for e in self.experiment_names if e != experiment_name]
 
+class Dataset(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    path: str
+    description: Optional[str] = None
+    data_type: DataType = Field(default=DataType.OTHER)
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+class Run(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: f"run_{uuid4().hex[:8]}", primary_key=True)
+    project_id: int = Field(foreign_key="project.id")
+    experiment_name: str = Field(index=True)
+    
+    status: RunStatus = Field(default=RunStatus.PENDING)
+    
+    # Store complex data as JSON
+    config: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    metrics: Dict[str, float] = Field(default={}, sa_column=Column(JSON))
+    tags: Dict[str, str] = Field(default={}, sa_column=Column(JSON))
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    end_time: Optional[datetime] = None
+    
+    # Artifacts location
+    artifacts_uri: Optional[str] = None
+    
+    # Relationships
+    project: Project = Relationship(back_populates="runs")

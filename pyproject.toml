@@ -19,13 +19,14 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9,<3.14"
 dependencies = [
     "numpy>=1.21.0",
     "pyyaml>=6.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "sqlalchemy>=2.0.0",
+    "sqlmodel>=0.0.14",
     "torch>=2.0.0",
     "onnx>=1.14.0",
     "onnxruntime>=1.15.0",

@@ -53,8 +53,9 @@ class TestProject:
             assert project.name == "test-project"
             assert project.description == "Test description"
             assert project.id is not None
-            assert len(project.id) == 8
-            assert project.family_count == 0  # No families yet
+            assert isinstance(project.id, int)
+            # Relationship check
+            assert len(project.families) == 0
     
     def test_project_unique_name(self):
         """Test that project names must be unique."""
@@ -74,10 +75,12 @@ class TestProject:
             session.add(project)
             session.flush()
             
-            data = project.to_dict()
+            session.flush()
+            
+            data = project.model_dump()
             assert data["name"] == "dict-test"
             assert data["description"] == "For dict test"
-            assert data["family_count"] == 0
+            # family_count is not in the model, handled by DTO layer
             assert "created_at" in data
 
 
