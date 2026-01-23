@@ -20,6 +20,8 @@ class KladMLSettings(BaseSettings):
     # API Configuration
     api_url: str = "http://localhost:8001/api/v1"
     api_key: Optional[str] = None
+    debug: bool = False
+
     
     # Compute Configuration
     device: str = "auto"  # auto | cpu | cuda | cuda:0 | mps
