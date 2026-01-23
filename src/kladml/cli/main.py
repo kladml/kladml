@@ -42,7 +42,7 @@ console = Console()
 # Import subcommands
 from kladml.cli import run, project, family
 from kladml.cli import projects, experiments, train, data, models, evaluate
-
+from kladml.cli.compare import compare_runs
 
 # Register subcommands
 app.add_typer(projects.app, name="project", help="Manage projects")
@@ -53,6 +53,8 @@ app.add_typer(run.app, name="run", help="Run scripts and manage runs")
 app.add_typer(data.app, name="data", help="Inspect and analyze datasets")
 app.add_typer(models.app, name="models", help="Manage and export models")
 app.add_typer(evaluate.app, name="eval", help="Evaluate trained models")
+
+app.command("compare", help="Compare runs side-by-side")(compare_runs)
 
 
 @app.command()

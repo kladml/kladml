@@ -16,7 +16,7 @@ class LocalMetadata(MetadataInterface):
 
     def _to_project_dto(self, p: Project) -> ProjectDTO:
         return ProjectDTO(
-            id=p.id,
+            id=str(p.id),
             name=p.name,
             description=p.description,
             created_at=p.created_at,
@@ -26,9 +26,9 @@ class LocalMetadata(MetadataInterface):
 
     def _to_family_dto(self, f: Family) -> FamilyDTO:
         return FamilyDTO(
-            id=f.id,
+            id=str(f.id),
             name=f.name,
-            project_id=f.project_id,
+            project_id=str(f.project_id),
             project_name=f.project.name if f.project else "?",
             description=f.description,
             experiment_names=f.experiment_names or [],

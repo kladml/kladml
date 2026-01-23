@@ -15,8 +15,34 @@ class KladMLApp(App):
     #content-area {
         padding: 1;
     }
+    #toolbar {
+        height: 3;
+        padding: 0 1;
+        align: right middle;
+        background: $surface;
+        border-bottom: solid $primary-darken-2;
+    }
+    #help-text {
+        width: 1fr;
+        color: $text-muted;
+    }
+    #compare-btn {
+        margin-left: 2;
+    }
     DataTable {
         height: 100%;
+    }
+    #compare-container {
+        padding: 1 2;
+    }
+    #compare-title {
+        text-align: center;
+        padding: 1;
+        background: $primary;
+        color: $text;
+    }
+    #compare-table {
+        margin-top: 1;
     }
     """
 
