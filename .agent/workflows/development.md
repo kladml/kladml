@@ -6,6 +6,9 @@ description: Development workflow and coding standards for KladML
 
 ## Core Principles (NON-NEGOTIABLE)
 
+### 0. Architecture First
+Before implementing any new component, consult `.agent/workflows/architecture.md` for design patterns and constraints.
+
 ### 1. Test-Driven Development (TDD)
 **ALWAYS follow the Red-Green-Refactor cycle:**
 
