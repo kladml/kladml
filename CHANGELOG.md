@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-01-23
+
+### Added
+- **Data Pipeline CLI:** New `kladml data process` command for running YAML-defined preprocessing pipelines.
+- **Auto-Export:** Added `run_training()` method with automatic ONNX export after training.
+- **Family Support:** Run ID generation now supports optional `family_name` for better organization.
+- **Public Roadmap:** Added user-facing roadmap (`docs/roadmap.md`) with reorganized priorities.
+
+### Changed
+- **Documentation Reorganization:** Moved internal docs to `private_docs/`, cleaned all public docs from platform references.
+- **Roadmap Priorities:** Repositioned "Quickstart" as Phase 8 (marketing feature), promoted "Core CLI Commands" to Phase 3.
+- **Export Default:** Changed default export format from TorchScript to ONNX.
+- **Project Path:** Updated default run path from `./projects` to `data/projects`.
+- **Python Support:** Added Python 3.12 classifier to `pyproject.toml`.
+
+### Improved
+- **CLI Documentation:** Comprehensive update to `docs/cli.md` with all commands (quickstart, tune, compare, register).
+- **Getting Started:** Complete rewrite focusing on quickstart workflow and practical examples.
+- **Error Messages:** Better method documentation in `BaseArchitecture`.
+
+### Fixed
+- **Examples:** Added `examples/` to `.gitignore` (volant scripts to be integrated into CLI).
+
 ## [0.5.1] - 2026-01-18
 
 ### Fixed
