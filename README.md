@@ -5,7 +5,6 @@
 **Build ML pipelines with pluggable backends. Simple. Modular. Yours.**
 
 ![PyPI - Version](https://img.shields.io/pypi/v/kladml)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kladml)
 [![License](https://img.shields.io/github/license/kladml/kladml.svg)](https://github.com/kladml/kladml/blob/main/LICENSE)
 
 `⭐ Star us on GitHub to support the project!`
