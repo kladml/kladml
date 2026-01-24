@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/images/logo_full.png" alt="KladML" width="600"/>
+<img src="https://raw.githubusercontent.com/kladml/kladml/main/docs/assets/images/logo_full.png" alt="KladML" width="600"/>
 
 **Build ML pipelines with pluggable backends. Simple. Modular. Yours.**
 
