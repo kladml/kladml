@@ -7,9 +7,9 @@ Provides consistent styling and helper functions for all evaluation plots.
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Optional
-import logging
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+
 
 # Global Style Configuration
 PLOT_STYLE = {

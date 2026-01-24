@@ -5,8 +5,6 @@ Base evaluator for all time series forecasting models.
 Provides standard metrics (MAE, RMSE, MAPE) and plots.
 """
 
-from pathlib import Path
-from typing import Dict, Any, Tuple, List
 from datetime import datetime
 import numpy as np
 
@@ -23,7 +21,7 @@ class TimeSeriesEvaluator(BaseEvaluator):
     - Plots: Predictions vs Actual, Error Distribution
     """
     
-    def compute_metrics(self, predictions: np.ndarray, targets: np.ndarray) -> Dict[str, float]:
+    def compute_metrics(self, predictions: np.ndarray, targets: np.ndarray) -> dict[str, float]:
         """
         Compute standard time series forecasting metrics.
         
