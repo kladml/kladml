@@ -1,9 +1,9 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Any, Dict, Union
+from typing import Any
 import json
-import os
+
 
 @dataclass
 class DatasetMetadata:
@@ -15,14 +15,14 @@ class DatasetMetadata:
     format: str       # e.g., "parquet", "hdf5"
     
     # Time properties
-    freq: Optional[str] = None      # e.g., "0.5s"
+    freq: str | None = None      # e.g., "0.5s"
     is_equispaced: bool = False
     
     # Feature properties
-    columns: List[str] = field(default_factory=list)
+    columns: list[str] = field(default_factory=list)
     
     # Statistics (Optional)
-    num_samples: Optional[int] = None
+    num_samples: int | None = None
     
     def save(self, path: str):
         """Save metadata to JSON."""
@@ -33,7 +33,7 @@ class DatasetMetadata:
     @classmethod
     def load(cls, path: str) -> 'DatasetMetadata':
         """Load metadata from JSON."""
-        with open(path, 'r') as f:
+        with open(path) as f:
             data = json.load(f)
         return cls(**data)
 
@@ -43,7 +43,7 @@ class PipelineComponent(ABC):
     Abstract base class for pipeline stages.
     Transformers, Parsers, Scalers etc.
     """
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         
     @abstractmethod
@@ -64,7 +64,7 @@ class DataPipeline(PipelineComponent):
     """
     Composite pipeline that runs components sequentially.
     """
-    def __init__(self, steps: List[PipelineComponent]):
+    def __init__(self, steps: list[PipelineComponent]):
         super().__init__()
         self.steps = steps
         
@@ -92,7 +92,7 @@ class DataPipeline(PipelineComponent):
         """Load pipeline from YAML config."""
         import yaml
         
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
             
         steps_config = config.get("pipeline", [])

@@ -1,6 +1,6 @@
 
-from abc import ABC, abstractmethod
-from typing import Any, Optional
+from abc import ABC
+from typing import Any
 
 class BaseDataModule(ABC):
     """
@@ -21,7 +21,7 @@ class BaseDataModule(ABC):
         """
         pass
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str | None = None) -> None:
         """
         Use this to split and/or transform the data.
         """

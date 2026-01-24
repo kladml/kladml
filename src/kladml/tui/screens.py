@@ -7,8 +7,6 @@ from textual.widgets import Label
 from textual.binding import Binding
 
 from kladml.backends import get_metadata_backend, LocalTracker
-from datetime import datetime
-from typing import Set, List
 
 
 class DashboardScreen(Screen):
@@ -24,7 +22,7 @@ class DashboardScreen(Screen):
 
     def __init__(self):
         super().__init__()
-        self.selected_runs: Set[str] = set()
+        self.selected_runs: set[str] = set()
         self.current_experiment: str = ""
 
     def compose(self) -> ComposeResult:
@@ -261,7 +259,7 @@ class CompareScreen(Screen):
 
     BINDINGS = [Binding("escape", "app.pop_screen", "Back")]
 
-    def __init__(self, run_ids: List[str]):
+    def __init__(self, run_ids: list[str]):
         super().__init__()
         self.run_ids = run_ids
 

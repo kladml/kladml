@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 class BasePreprocessor(ABC):
     """
@@ -15,7 +15,7 @@ class BasePreprocessor(ABC):
     # API version - increment when interface changes
     API_VERSION = 1
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize the preprocessor.
         

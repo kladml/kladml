@@ -1,8 +1,7 @@
 
 import pandas as pd
-import numpy as np
-import os
-from typing import Any, Dict, List, Tuple
+from pathlib import Path
+from typing import Any
 from ..pipeline import PipelineComponent
 
 class ChronologicalSplitter(PipelineComponent):
@@ -19,7 +18,7 @@ class ChronologicalSplitter(PipelineComponent):
     def fit(self, data: Any) -> 'ChronologicalSplitter':
         return self
 
-    def transform(self, df: pd.DataFrame) -> Dict[str, str]:
+    def transform(self, df: pd.DataFrame) -> dict[str, str]:
         """
         Splits DataFrame and saves parts.
         Returns paths to saved files.
@@ -32,7 +31,7 @@ class ChronologicalSplitter(PipelineComponent):
             # Assume single trip
             df['trip_id'] = 0
             
-        os.makedirs(self.output_dir, exist_ok=True)
+        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         
         # Trip Stats
         # Sort trips by start time
@@ -74,9 +73,9 @@ class ChronologicalSplitter(PipelineComponent):
             # Drop aux columns if cleaner output desired? Keep timestamp.
             # Maybe drop trip_id if not needed downstream? Keep it for debug.
             
-            path = os.path.join(self.output_dir, f"{name}.parquet")
+            path = Path(self.output_dir) / f"{name}.parquet"
             subset.to_parquet(path)
-            parts[name] = path
+            parts[name] = str(path)
             
         # Also save split metadata?
         return parts

@@ -4,7 +4,8 @@ Local Metadata Backend (SQLite).
 Implements MetadataInterface using SQLAlchemy and SQLite.
 """
 
-from typing import List, Optional, Any
+from typing import Optional, Any
+from sqlmodel import select
 from kladml.interfaces.metadata import MetadataInterface, ProjectDTO, FamilyDTO, DatasetDTO
 from kladml.db import Project, Family, init_db, session_scope
 
@@ -37,7 +38,6 @@ class LocalMetadata(MetadataInterface):
 
     def _to_dataset_dto(self, d: Any) -> DatasetDTO:
          # Using Any for d to avoid import circular issues if not clean, but normally it's available
-         from kladml.db.models import Dataset
          return DatasetDTO(
              id=d.id,
              name=d.name,
@@ -49,7 +49,7 @@ class LocalMetadata(MetadataInterface):
     def create_dataset(self, name: str, path: str, description: Optional[str] = None) -> DatasetDTO:
         from kladml.db.models import Dataset
         with session_scope() as session:
-            existing = session.query(Dataset).filter_by(name=name).first()
+            existing = session.exec(select(Dataset).where(Dataset.name == name)).first()
             if existing:
                 return self._to_dataset_dto(existing)
             
@@ -59,16 +59,16 @@ class LocalMetadata(MetadataInterface):
             session.refresh(ds)
             return self._to_dataset_dto(ds)
 
-    def list_datasets(self) -> List[DatasetDTO]:
+    def list_datasets(self) -> list[DatasetDTO]:
         from kladml.db.models import Dataset
         with session_scope() as session:
-            datasets = session.query(Dataset).order_by(Dataset.name).all()
+            datasets = session.exec(select(Dataset).order_by(Dataset.name)).all()
             return [self._to_dataset_dto(d) for d in datasets]
 
     # Project Methods
     def create_project(self, name: str, description: Optional[str] = None) -> ProjectDTO:
         with session_scope() as session:
-            existing = session.query(Project).filter_by(name=name).first()
+            existing = session.exec(select(Project).where(Project.name == name)).first()
             if existing:
                 raise ValueError(f"Project '{name}' already exists")
             
@@ -80,19 +80,19 @@ class LocalMetadata(MetadataInterface):
 
     def get_project(self, name: str) -> Optional[ProjectDTO]:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=name).first()
+            project = session.exec(select(Project).where(Project.name == name)).first()
             if not project:
                 return None
             return self._to_project_dto(project)
 
-    def list_projects(self) -> List[ProjectDTO]:
+    def list_projects(self) -> list[ProjectDTO]:
         with session_scope() as session:
-            projects = session.query(Project).order_by(Project.created_at.desc()).all()
+            projects = session.exec(select(Project).order_by(Project.created_at.desc())).all()
             return [self._to_project_dto(p) for p in projects]
 
     def delete_project(self, name: str) -> None:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=name).first()
+            project = session.exec(select(Project).where(Project.name == name)).first()
             if not project:
                 raise ValueError(f"Project '{name}' not found")
             session.delete(project)
@@ -100,11 +100,11 @@ class LocalMetadata(MetadataInterface):
     # Family Methods
     def create_family(self, name: str, project_name: str, description: Optional[str] = None) -> FamilyDTO:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=project_name).first()
+            project = session.exec(select(Project).where(Project.name == project_name)).first()
             if not project:
                 raise ValueError(f"Project '{project_name}' not found")
             
-            existing = session.query(Family).filter_by(project_id=project.id, name=name).first()
+            existing = session.exec(select(Family).where(Family.project_id == project.id, Family.name == name)).first()
             if existing:
                 raise ValueError(f"Family '{name}' already exists in project '{project_name}'")
             
@@ -116,34 +116,34 @@ class LocalMetadata(MetadataInterface):
 
     def get_family(self, name: str, project_name: str) -> Optional[FamilyDTO]:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=project_name).first()
+            project = session.exec(select(Project).where(Project.name == project_name)).first()
             if not project:
                 return None
             
-            family = session.query(Family).filter_by(project_id=project.id, name=name).first()
+            family = session.exec(select(Family).where(Family.project_id == project.id, Family.name == name)).first()
             if not family:
                 return None
             return self._to_family_dto(family)
 
-    def list_families(self, project_name: Optional[str] = None) -> List[FamilyDTO]:
+    def list_families(self, project_name: Optional[str] = None) -> list[FamilyDTO]:
         with session_scope() as session:
-            query = session.query(Family)
+            query = select(Family)
             if project_name:
-                project = session.query(Project).filter_by(name=project_name).first()
+                project = session.exec(select(Project).where(Project.name == project_name)).first()
                 if not project:
                     raise ValueError(f"Project '{project_name}' not found")
-                query = query.filter_by(project_id=project.id)
+                query = query.where(Family.project_id == project.id)
             
-            families = query.all()
+            families = session.exec(query).all()
             return [self._to_family_dto(f) for f in families]
 
     def delete_family(self, name: str, project_name: str) -> None:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=project_name).first()
+            project = session.exec(select(Project).where(Project.name == project_name)).first()
             if not project:
                 raise ValueError(f"Project '{project_name}' not found")
                 
-            family = session.query(Family).filter_by(project_id=project.id, name=name).first()
+            family = session.exec(select(Family).where(Family.project_id == project.id, Family.name == name)).first()
             if not family:
                 raise ValueError(f"Family '{name}' not found in project '{project_name}'")
                 
@@ -151,11 +151,11 @@ class LocalMetadata(MetadataInterface):
 
     def add_experiment_to_family(self, family_name: str, project_name: str, experiment_name: str) -> None:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=project_name).first()
+            project = session.exec(select(Project).where(Project.name == project_name)).first()
             if not project:
                 raise ValueError(f"Project '{project_name}' not found")
             
-            family = session.query(Family).filter_by(project_id=project.id, name=family_name).first()
+            family = session.exec(select(Family).where(Family.project_id == project.id, Family.name == family_name)).first()
             if not family:
                 raise ValueError(f"Family '{family_name}' not found in project '{project_name}'")
             
@@ -163,11 +163,11 @@ class LocalMetadata(MetadataInterface):
 
     def remove_experiment_from_family(self, family_name: str, project_name: str, experiment_name: str) -> None:
         with session_scope() as session:
-            project = session.query(Project).filter_by(name=project_name).first()
+            project = session.exec(select(Project).where(Project.name == project_name)).first()
             if not project:
                 raise ValueError(f"Project '{project_name}' not found")
             
-            family = session.query(Family).filter_by(project_id=project.id, name=family_name).first()
+            family = session.exec(select(Family).where(Family.project_id == project.id, Family.name == family_name)).first()
             if not family:
                 raise ValueError(f"Family '{family_name}' not found in project '{project_name}'")
             

@@ -9,9 +9,8 @@ Provides a rich CLI for:
 """
 
 import typer
-import logging
+from kladml.config.logging import setup_logging
 from rich.console import Console
-from kladml.config.settings import settings
 
 app = typer.Typer(
     name="kladml",
@@ -25,23 +24,14 @@ def main(ctx: typer.Context):
     """
     Manage KladML projects and experiments.
     """
-    # Configure logging
-    log_level = logging.DEBUG if settings.debug else logging.INFO
-    
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%H:%M:%S",
-    )
-    
-    if settings.debug:
-        logging.getLogger("kladml").setLevel(logging.DEBUG)
+    # Configure logging (Structured Loguru)
+    setup_logging()
 
 console = Console()
 
 # Import subcommands
-from kladml.cli import run, project, family
-from kladml.cli import projects, experiments, train, data, models, evaluate
+from kladml.cli import run, family
+from kladml.cli import projects, experiments, train, data, registry, export, evaluate
 from kladml.cli.compare import compare_runs
 
 # Register subcommands
@@ -51,7 +41,11 @@ app.add_typer(experiments.app, name="experiment", help="Manage experiments")
 app.add_typer(train.app, name="train", help="Train models")
 app.add_typer(run.app, name="run", help="Run scripts and manage runs")
 app.add_typer(data.app, name="data", help="Inspect and analyze datasets")
-app.add_typer(models.app, name="models", help="Manage and export models")
+
+# New Commands (v0.6.0)
+app.add_typer(registry.app, name="registry", help="Manage artifact registry")
+app.add_typer(export.app, name="export", help="Export models (ONNX, TorchScript)")
+
 app.add_typer(evaluate.app, name="eval", help="Evaluate trained models")
 
 app.command("compare", help="Compare runs side-by-side")(compare_runs)

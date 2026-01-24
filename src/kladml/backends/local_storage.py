@@ -4,10 +4,8 @@ Local Storage Backend
 Filesystem-based implementation of StorageInterface.
 """
 
-import os
 import shutil
 from pathlib import Path
-from typing import List
 
 from kladml.interfaces import StorageInterface
 
@@ -67,7 +65,7 @@ class LocalStorage(StorageInterface):
         """Check if file exists in storage."""
         return self._get_full_path(bucket, key).exists()
     
-    def list_objects(self, bucket: str, prefix: str = "") -> List[str]:
+    def list_objects(self, bucket: str, prefix: str = "") -> list[str]:
         """List all objects in bucket with optional prefix filter."""
         bucket_path = self.base_path / bucket
         if not bucket_path.exists():

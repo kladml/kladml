@@ -7,18 +7,17 @@ Provides SQLite connection management with:
 - Path configuration
 """
 
-import os
-import logging
+from loguru import logger
 from pathlib import Path
-from typing import Generator
+from collections.abc import Generator
 from contextlib import contextmanager
+from kladml.config.settings import settings
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel, Session
 
-from sqlmodel import SQLModel
 
-logger = logging.getLogger(__name__)
 
 # Default database location
 DEFAULT_DB_DIR = Path.home() / ".kladml"
@@ -27,18 +26,15 @@ DEFAULT_DB_NAME = "kladml.db"
 
 def get_db_path() -> Path:
     """
-    Get the database file path.
-    
-    Uses KLADML_DB_PATH environment variable if set,
-    otherwise defaults to ~/.kladml/kladml.db
-    
-    Returns:
-        Path to the SQLite database file
+    Get the database file path from settings.
+    Only valid for SQLite URLs.
     """
-    env_path = os.environ.get("KLADML_DB_PATH")
-    if env_path:
-        return Path(env_path)
-    return DEFAULT_DB_DIR / DEFAULT_DB_NAME
+    url = settings.database_url
+    if url.startswith("sqlite:///"):
+        return Path(url.replace("sqlite:///", ""))
+    # Fallback or error for non-sqlite? 
+    # For now assume mostly sqlite usage in local backend
+    return Path("kladml.db")
 
 
 def get_db_url() -> str:
@@ -48,8 +44,7 @@ def get_db_url() -> str:
     Returns:
         SQLite connection URL
     """
-    db_path = get_db_path()
-    return f"sqlite:///{db_path}"
+    return settings.database_url
 
 
 # Lazy engine initialization
@@ -75,12 +70,14 @@ def _get_engine():
     return _engine
 
 
+
 def _get_session_factory():
     """Get or create the session factory."""
     global _session_factory
     if _session_factory is None:
         _session_factory = sessionmaker(
             bind=_get_engine(),
+            class_=Session,
             autocommit=False,
             autoflush=False,
         )

@@ -32,7 +32,7 @@ from kladml.interfaces import (
 # Backends (light implementations)
 from kladml.backends import (
     LocalStorage,
-    YamlConfig,
+
     ConsolePublisher,
     NoOpPublisher,
     LocalTracker,
@@ -60,7 +60,7 @@ __all__ = [
     "TrackerInterface",
     # Backends
     "LocalStorage",
-    "YamlConfig",
+
     "ConsolePublisher",
     "NoOpPublisher",
     "LocalTracker",

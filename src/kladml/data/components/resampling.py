@@ -1,7 +1,6 @@
 
 import pandas as pd
-import numpy as np
-from typing import Any, Optional, Dict
+from typing import Any
 from ..pipeline import PipelineComponent
 
 class TimeResampler(PipelineComponent):

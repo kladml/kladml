@@ -5,7 +5,7 @@ Uses TrackerInterface for experiment/run management.
 """
 
 import typer
-from typing import Optional, List
+from typing import Optional
 from rich.console import Console
 from rich.table import Table
 

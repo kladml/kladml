@@ -3,6 +3,8 @@ KladML CLI - Run Commands
 """
 
 import typer
+import typer
+import yaml
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
@@ -26,7 +28,7 @@ def run_local(
     Run training locally using a container runtime (Docker, Podman, etc).
     """
     import subprocess
-    import os
+
     import shutil
     
     script_path = Path(script)
@@ -88,7 +90,7 @@ def run_local(
     ))
     
     # 3. Build Command
-    cwd = os.getcwd()
+    cwd = Path.cwd()
     cmd = [
         runtime_cmd, "run", "--rm",
         "-v", f"{cwd}:/workspace",
@@ -105,11 +107,18 @@ def run_local(
             cmd.extend(["--security-opt=label=disable"]) # Often needed for Podman GPU
     
     # Add environment variables
-    from kladml.backends.local_config import YamlConfig
-    config = YamlConfig()
-    
+    # Extract project name directly from YAML for now (Legacy support)
+    project_name = "unknown"
+    if Path("kladml.yaml").exists():
+        try:
+            with open("kladml.yaml") as f:
+                y = yaml.safe_load(f) or {}
+                project_name = y.get("project", {}).get("name", "unknown")
+        except Exception:
+            pass
+
     env_vars = {
-        "KLADML_PROJECT_NAME": config.get("project.name", "unknown"),
+        "KLADML_PROJECT_NAME": project_name,
         "KLADML_TRAINING_DEVICE": device,
     }
     

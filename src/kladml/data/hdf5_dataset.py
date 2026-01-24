@@ -3,8 +3,7 @@ import h5py
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional
 
 class HDF5GluformerDataset(Dataset):
     """
@@ -71,7 +70,7 @@ class HDF5GluformerDataset(Dataset):
         # File handle for lazy loading (per-worker)
         self._h5_file = None
 
-    def _build_windows(self, f: h5py.File) -> List[Tuple[int, int]]:
+    def _build_windows(self, f: h5py.File) -> list[tuple[int, int]]:
         """Scan all series lengths and build valid window indices."""
         windows = []
         stride = 1
