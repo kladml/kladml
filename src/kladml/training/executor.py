@@ -16,7 +16,7 @@ import os
 from typing import Dict, Any, List, Optional, Tuple, Type
 from pathlib import Path
 
-from kladml.base import BaseArchitecture
+from kladml.models.base import BaseModel
 from kladml.interfaces.tracker import TrackerInterface
 from kladml.interfaces.publisher import PublisherInterface
 from kladml.utils.paths import resolve_dataset_path, resolve_preprocessor_path
@@ -52,7 +52,7 @@ class LocalTrainingExecutor:
     
     def __init__(
         self,
-        model_class: Type[BaseArchitecture],
+        model_class: Type[BaseModel],
         experiment_name: str,
         config: Optional[Dict[str, Any]] = None,
         tracker: Optional[TrackerInterface] = None,
@@ -237,7 +237,7 @@ class LocalTrainingExecutor:
         
         try:
             # Instantiate and train model
-            # BaseArchitecture expects a 'config' dictionary
+            # BaseModel expects a 'config' dictionary
             model = self.model_class(config=run_config)
             metrics = model.train(X_train=data_path, X_val=val_path, **run_config)
             
