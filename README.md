@@ -28,17 +28,24 @@
 
 ---
 
+---
+
+## Requirements
+
+- **Python**: 3.10, 3.11, 3.12 (Native support for modern type hints)
+- **OS**: Linux, macOS, Windows
+
 ## Installation
 
 ```bash
-# Core (lightweight, no UI)
+# Core (lightweight, minimal dependencies)
 pip install kladml
 
-# Full CLI (for terminal usage with TUI)
-pip install -e ".[all]"
+# All SDK features (tracking, training, dev tools)
+pip install "kladml[all]"
 
 # For Vision support (optional)
-pip install -e ".[vision]"
+pip install "kladml[vision]"
 ```
 
 ---
