@@ -52,9 +52,9 @@ entry_point:
 """
 
 VALID_MODEL_PY = """
-from kladml.base import BaseArchitecture
+from kladml.models.base import BaseModel
 
-class TestModel(BaseArchitecture):
+class TestModel(BaseModel):
     def fit(self, X, y, **kwargs):
         self._is_fitted = True
     
@@ -69,7 +69,7 @@ class TestModel(BaseArchitecture):
 """
 
 VALID_PREPROCESSOR_PY = """
-from kladml.base import BasePreprocessor
+from kladml.data.preprocessor import BasePreprocessor
 
 class TestPreprocessor(BasePreprocessor):
     def fit(self, dataset):

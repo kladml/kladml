@@ -4,9 +4,9 @@ import torch
 import numpy as np
 import pandas as pd
 import os
-from kladml.architectures.canbus.dataset import CanBusDataset
-from kladml.architectures.canbus.architecture import CanBusTransformer
-from kladml.architectures.canbus.model import CanBusModel
+from kladml.models.timeseries.transformer.canbus.dataset import CanBusDataset
+from kladml.models.timeseries.transformer.canbus.architecture import CanBusTransformer
+from kladml.models.timeseries.transformer.canbus.model import CanBusModel
 
 # Create strict dummy data for testing
 @pytest.fixture
