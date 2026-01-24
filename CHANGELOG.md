@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-01-24
+
+### Added
+- **Typed Configuration:** Migrated all configs to **Pydantic v2 Models** (`TrainingConfig`, `ModelConfig`) for strict validation and improved type safety.
+- **Evaluator Hierarchy:** Introduced structured evaluator system under `src/kladml/evaluation/` (Classification, Regression, TimeSeries).
+- **Test Coverage:** Maximized coverage on critical paths (RunID, Trainer, Checkpoints, Family CLI).
+- **Artifact Logging:** Added support for logging artifacts and models in `LocalTracker`.
+
+### Changed
+- **Dependencies:** Dropped support for Python 3.9 (Minimum is now 3.10).
+- **Trainer:** `UniversalTrainer` now accepts typed config objects.
+- **Testing:** Reorganized test suite into `unit/{models,training,cli}` structure.
+
+### Fixed
+- **PyPI Display:** Fixed broken logo image on PyPI by using absolute GitHub URL.
+- **CLI Imports:** Fixed `ImportError` in `test_family_cli` caused by missing interface exports.
+
 ## [0.6.0] - 2026-01-24
 
 ### Added
