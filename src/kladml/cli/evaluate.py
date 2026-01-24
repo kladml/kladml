@@ -80,7 +80,7 @@ def run_evaluation(
     
     # Select evaluator based on model type
     if model.lower() == "gluformer":
-        from kladml.architectures.gluformer.evaluator import GluformerEvaluator
+        from kladml.models.timeseries.transformer.gluformer.evaluator import GluformerEvaluator
         evaluator = GluformerEvaluator(
             run_dir=run_dir,
             model_path=checkpoint,

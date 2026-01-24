@@ -24,7 +24,7 @@ def export_model(
     """
     # Lazy imports for faster CLI startup
     import torch
-    from kladml.architectures.gluformer.model import GluformerModel
+    from kladml.models.timeseries.transformer.gluformer.model import GluformerModel
     from kladml.training.checkpoint import CheckpointManager
     
     try:
@@ -83,7 +83,7 @@ def export_model(
         model_wrapper._is_trained = True
         
         # 3. Export using deployment utility
-        from kladml.architectures.gluformer.deployment import export_to_torchscript
+        from kladml.models.timeseries.transformer.gluformer.deployment import export_to_torchscript
         
         console.print("[cyan]Exporting to TorchScript...[/cyan]")
         export_to_torchscript(
