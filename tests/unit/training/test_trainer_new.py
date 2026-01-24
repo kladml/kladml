@@ -1,6 +1,6 @@
 
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset

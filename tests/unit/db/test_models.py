@@ -4,18 +4,19 @@ Unit tests for KladML database layer.
 
 import pytest
 import tempfile
-import os
 import shutil
 from pathlib import Path
 
 # Set test database path before importing
 TEST_DB_DIR = tempfile.mkdtemp()
 TEST_DB_PATH = str(Path(TEST_DB_DIR) / "test_kladml.db")
-os.environ["KLADML_DB_PATH"] = TEST_DB_PATH
+# os.environ["KLADML_DB_PATH"] = TEST_DB_PATH  # Legacy
 
 from kladml.db import Project, Family, init_db
 from kladml.db.session import session_scope, reset_db
 import kladml.db.session as session_module
+from kladml.config.settings import settings
+from sqlmodel import select
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_temp_dir():
@@ -30,12 +31,17 @@ def setup_test_db():
     session_module._engine = None
     session_module._session_factory = None
     
+    # Patch database URL in settings
+    original_url = settings.database_url
+    settings.database_url = f"sqlite:///{TEST_DB_PATH}"
+    
     # Now reset and init
     reset_db()
     init_db()
     yield
     # Cleanup after tests
     reset_db()
+    settings.database_url = original_url
 
 
 class TestProject:
@@ -48,7 +54,7 @@ class TestProject:
             session.add(project)
         
         with session_scope() as session:
-            project = session.query(Project).filter_by(name="test-project").first()
+            project = session.exec(select(Project).where(Project.name == "test-project")).first()
             assert project is not None
             assert project.name == "test-project"
             assert project.description == "Test description"
@@ -98,7 +104,7 @@ class TestFamily:
             session.add(family)
         
         with session_scope() as session:
-            family = session.query(Family).filter_by(name="test-family").first()
+            family = session.exec(select(Family).where(Family.name == "test-family")).first()
             assert family is not None
             assert family.name == "test-family"
             assert family.experiment_names == []
@@ -135,7 +141,7 @@ class TestSessionManagement:
         
         # Should be persisted
         with session_scope() as session:
-            project = session.query(Project).filter_by(name="commit-test").first()
+            project = session.exec(select(Project).where(Project.name == "commit-test")).first()
             assert project is not None
     
     def test_session_scope_rollback(self):
@@ -150,5 +156,5 @@ class TestSessionManagement:
         
         # Should not be persisted
         with session_scope() as session:
-            project = session.query(Project).filter_by(name="rollback-test").first()
+            project = session.exec(select(Project).where(Project.name == "rollback-test")).first()
             assert project is None

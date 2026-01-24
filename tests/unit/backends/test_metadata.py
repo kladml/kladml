@@ -3,19 +3,14 @@ Tests for KladML Backends
 """
 
 import pytest
-import tempfile
-import os
-from pathlib import Path
 
 from kladml.backends import (
     LocalStorage,
-    YamlConfig,
     ConsolePublisher,
     NoOpPublisher,
 )
 from kladml.interfaces import (
     StorageInterface,
-    ConfigInterface,
     PublisherInterface,
 )
 
@@ -76,41 +71,7 @@ class TestLocalStorage:
         assert url.startswith("file://")
 
 
-class TestYamlConfig:
-    """Test YamlConfig implementation."""
-    
-    def test_implements_interface(self):
-        config = YamlConfig()
-        assert isinstance(config, ConfigInterface)
-    
-    def test_default_values(self):
-        config = YamlConfig()
-        assert config.mlflow_tracking_uri == "sqlite:///mlruns.db"
-        assert config.artifacts_dir == "./kladml_data"
-        assert config.device == "auto"
-    
-    def test_env_override(self, monkeypatch):
-        monkeypatch.setenv("KLADML_TRAINING_DEVICE", "cuda")
-        config = YamlConfig()
-        assert config.get("training.device") == "cuda"
-    
-    def test_yaml_file_loading(self, tmp_path, monkeypatch):
-        # Create a kladml.yaml
-        yaml_content = """
-training:
-  device: mps
-storage:
-  artifacts_dir: /custom/path
-"""
-        yaml_file = tmp_path / "kladml.yaml"
-        yaml_file.write_text(yaml_content)
-        
-        # Change to temp directory
-        monkeypatch.chdir(tmp_path)
-        
-        config = YamlConfig()
-        assert config.device == "mps"
-        assert config.artifacts_dir == "/custom/path"
+
 
 
 class TestConsolePublisher:

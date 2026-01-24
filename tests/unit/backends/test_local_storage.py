@@ -1,6 +1,5 @@
 
 import pytest
-import os
 import tempfile
 from pathlib import Path
 from kladml.backends.local_storage import LocalStorage
