@@ -1,17 +1,11 @@
-"""
-Base classes for KladML Architectures and Preprocessors.
-
-These abstract classes define the interface that all custom implementations must follow.
-"""
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 import numpy as np
 
-
 from kladml.tasks import MLTask
 
-class BaseArchitecture(ABC):
+class BaseModel(ABC):
     """
     Abstract base class for ML model architectures.
     
@@ -111,7 +105,7 @@ class BaseArchitecture(ABC):
         """Get model parameters."""
         return self.config.copy()
     
-    def set_params(self, **params) -> "BaseArchitecture":
+    def set_params(self, **params) -> "BaseModel":
         """Set model parameters."""
         self.config.update(params)
         return self
@@ -121,8 +115,6 @@ class BaseArchitecture(ABC):
         """Check if model has been trained."""
         return self._is_trained
     
-    # Alias fit -> train for compatibility if user prefers sklearn style, 
-    # BUT train is the canonical method for the Platform.
     def fit(self, *args, **kwargs):
         """Alias for train()."""
         return self.train(*args, **kwargs)
@@ -222,12 +214,6 @@ class BaseArchitecture(ABC):
             checkpoint_frequency=self.config.get("checkpoint_frequency", 5),
             family_name=family_name,
         )
-        # Note: CheckpointManager is not a Callback subclass in current implementation?
-        # Let's check. If it's not, we don't append it to callbacks list but use it manually.
-        # However, usually we want a CheckpointCallback that wraps the manager.
-        # GluformerModel uses CheckpointManager manually in train loop.
-        # To standardize, we should use a CheckpointCallback if possible, or keep manual usage but standard init.
-        # For now, we just init it here.
         
         # 3. Early Stopping (Pluggable)
         es_nested = self.config.get("early_stopping", {})
@@ -264,88 +250,3 @@ class BaseArchitecture(ABC):
         callbacks.append(self._metrics_callback)
         
         self._callbacks_list = CallbackList(callbacks)
-
-
-class BasePreprocessor(ABC):
-    """
-    Abstract base class for data preprocessors.
-    
-    All custom preprocessors must inherit from this class and implement
-    the required abstract methods: fit, transform, save, load.
-    
-    Preprocessors transform raw datasets into formats suitable for model training.
-    """
-    
-    # API version - increment when interface changes
-    API_VERSION = 1
-    
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """
-        Initialize the preprocessor.
-        
-        Args:
-            config: Preprocessor configuration dictionary.
-        """
-        self.config = config or {}
-        self._is_fitted = False
-    
-    @abstractmethod
-    def fit(self, dataset: Any) -> None:
-        """
-        Fit the preprocessor to the dataset (learn statistics, vocabularies, etc.).
-        
-        Args:
-            dataset: Input dataset (format depends on preprocessor type)
-        """
-        pass
-    
-    @abstractmethod
-    def transform(self, dataset: Any) -> Any:
-        """
-        Transform the dataset using fitted parameters.
-        
-        Args:
-            dataset: Input dataset
-        
-        Returns:
-            Transformed dataset
-        """
-        pass
-    
-    def fit_transform(self, dataset: Any) -> Any:
-        """
-        Fit and transform in one step.
-        
-        Args:
-            dataset: Input dataset
-        
-        Returns:
-            Transformed dataset
-        """
-        self.fit(dataset)
-        return self.transform(dataset)
-    
-    @abstractmethod
-    def save(self, path: str) -> None:
-        """
-        Save preprocessor state to disk.
-        
-        Args:
-            path: Directory path where state should be saved
-        """
-        pass
-    
-    @abstractmethod
-    def load(self, path: str) -> None:
-        """
-        Load preprocessor state from disk.
-        
-        Args:
-            path: Directory path containing saved state
-        """
-        pass
-    
-    @property
-    def is_fitted(self) -> bool:
-        """Check if preprocessor has been fitted."""
-        return self._is_fitted

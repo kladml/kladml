@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import os
 import logging
-from kladml.models.timeseries import TimeSeriesModel
+from kladml.models.timeseries.base import TimeSeriesModel
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class TransformerModel(TorchExportMixin, TimeSeriesModel):
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(config)
         
-        # 1. Architecture Hyperparameters
+        # 1. Model Hyperparameters
         self.d_model = self.config.get("d_model", 512)
         self.n_heads = self.config.get("n_heads", 8)
         self.e_layers = self.config.get("e_layers", 3)

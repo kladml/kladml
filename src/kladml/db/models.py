@@ -68,3 +68,14 @@ class Dataset(SQLModel, table=True):
     data_type: DataType = Field(default=DataType.OTHER)
     
     created_at: datetime = Field(default_factory=utc_now)
+
+class ModelArtifact(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    version: str = Field(index=True)
+    path: str # Path in registry
+    run_id: Optional[str] = Field(default=None, index=True)
+    status: str = Field(default="production") # production, staging, archived
+    
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)

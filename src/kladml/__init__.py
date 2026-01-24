@@ -4,7 +4,7 @@ KladML SDK - Build custom AI architectures and preprocessors for the KladML plat
 This package provides:
 - Interfaces: Abstract contracts for services (Storage, Config, Publisher, Tracker)
 - Backends: Light implementations for standalone use (LocalStorage, YamlConfig, etc.)
-- Models: Base classes for ML architectures (BaseArchitecture, TimeSeriesModel, etc.)
+- Models: Base classes for ML architectures (BaseModel, TimeSeriesModel, etc.)
 - Training: Experiment orchestration (ExperimentRunner)
 - CLI: Command-line interface for running experiments
 """
@@ -15,10 +15,11 @@ except ImportError:
     __version__ = "0.0.0+unknown"
 
 # Core Models
-from kladml.base import BaseArchitecture, BasePreprocessor
+from kladml.models.base import BaseModel
+from kladml.data.preprocessor import BasePreprocessor
 from kladml.tasks import MLTask
-from kladml.models.timeseries import TimeSeriesModel
-from kladml.models.classification import ClassificationModel
+from kladml.models.timeseries.base import TimeSeriesModel
+from kladml.models.classification.base import ClassificationModel
 
 # Interfaces (for implementing custom backends)
 from kladml.interfaces import (
@@ -47,7 +48,7 @@ __all__ = [
     # Version
     "__version__",
     # Models
-    "BaseArchitecture", 
+    "BaseModel", 
     "BasePreprocessor", 
     "MLTask",
     "TimeSeriesModel",
