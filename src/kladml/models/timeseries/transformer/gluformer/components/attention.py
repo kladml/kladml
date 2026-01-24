@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from math import sqrt
 
 class CausalConv1d(torch.nn.Conv1d):
   def __init__(self,
@@ -15,7 +14,7 @@ class CausalConv1d(torch.nn.Conv1d):
                 bias=True):
     self.__padding = (kernel_size - 1) * dilation
 
-    super(CausalConv1d, self).__init__(
+    super().__init__(
         in_channels,
         out_channels,
         kernel_size=kernel_size,
@@ -26,12 +25,12 @@ class CausalConv1d(torch.nn.Conv1d):
         bias=bias)
 
   def forward(self, input):
-    result = super(CausalConv1d, self).forward(input)
+    result = super().forward(input)
     if self.__padding != 0:
         return result[:, :, :-self.__padding]
     return result
 
-class TriangularCausalMask():
+class TriangularCausalMask:
     def __init__(self, b, n, device="cpu"):
         mask_shape = [b, 1, n, n]
         with torch.no_grad():
@@ -43,7 +42,7 @@ class TriangularCausalMask():
 
 class MultiheadAttention(nn.Module):
   def __init__(self, d_model, n_heads, d_keys, mask_flag, r_att_drop=0.1):
-    super(MultiheadAttention, self).__init__()
+    super().__init__()
     self.h, self.d, self.mask_flag= n_heads, d_keys, mask_flag
     self.proj_q = nn.Linear(d_model, self.h * self.d)
     self.proj_k = nn.Linear(d_model, self.h * self.d)

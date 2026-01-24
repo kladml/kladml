@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -7,7 +6,7 @@ from .attention import *
 class DecoderLayer(nn.Module):
   def __init__(self, self_att, cross_att, d_model, d_fcn,
                 r_drop, activ="relu"):
-    super(DecoderLayer, self).__init__()
+    super().__init__()
 
     self.self_att = self_att
     self.cross_att = cross_att
@@ -36,7 +35,7 @@ class DecoderLayer(nn.Module):
 
 class Decoder(nn.Module):
   def __init__(self, layers, norm_layer=None):
-    super(Decoder, self).__init__()
+    super().__init__()
     self.layers = nn.ModuleList(layers)
     self.norm = norm_layer
 

@@ -12,10 +12,9 @@ Based on Transformer architecture with:
 
 import torch
 import torch.nn as nn
-import numpy as np
 
 from kladml.models.timeseries.transformer.gluformer.components.embed import DataEmbedding
-from kladml.models.timeseries.transformer.gluformer.components.attention import MultiheadAttention, CausalConv1d
+from kladml.models.timeseries.transformer.gluformer.components.attention import MultiheadAttention
 from kladml.models.timeseries.transformer.gluformer.components.encoder import EncoderLayer, Encoder, ConvLayer
 from kladml.models.timeseries.transformer.gluformer.components.decoder import DecoderLayer, Decoder
 
@@ -63,7 +62,7 @@ class Gluformer(nn.Module):
         num_static_features: int = 1,
         label_len: int = 48,
     ):
-        super(Gluformer, self).__init__()
+        super().__init__()
         
         self.len_pred = len_pred
         self.label_len = label_len

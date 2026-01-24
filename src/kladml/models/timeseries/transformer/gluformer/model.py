@@ -9,11 +9,9 @@ Provides training loop with:
 - MLflow integration
 """
 
-import os
-import logging
+from loguru import logger
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
-from datetime import datetime
+from typing import Any, Optional
 
 import numpy as np
 
@@ -23,12 +21,10 @@ from kladml.training.checkpoint import CheckpointManager
 from kladml.training.callbacks import (
     CallbackList,
     ProjectLogger,
-    EarlyStoppingCallback,
-    MetricsCallback,
 )
-from kladml.training.run_id import generate_run_id, get_run_checkpoint_dir
+from kladml.training.run_id import generate_run_id
 
-logger = logging.getLogger(__name__)
+
 
 
 class GluformerModel(TransformerModel):
@@ -54,7 +50,7 @@ class GluformerModel(TransformerModel):
         >>> metrics = model.train(train_data, val_data=val_data)
     """
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         """
         Initialize Gluformer model.
         
@@ -175,7 +171,6 @@ class GluformerModel(TransformerModel):
 
     def training_step(self, batch, batch_idx):
         """Single training step."""
-        import torch
         
         # Unpack batch (Trainer has already moved it to device)
         x_enc = batch['x_enc']
@@ -224,7 +219,7 @@ class GluformerModel(TransformerModel):
         X_val: Any = None, 
         y_val: Any = None,
         **kwargs
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Train using UniversalTrainer.
         """
@@ -296,7 +291,7 @@ class GluformerModel(TransformerModel):
              
         return metrics
     
-    def predict(self, X: Any, **kwargs) -> Dict[str, Any]:
+    def predict(self, X: Any, **kwargs) -> dict[str, Any]:
         """
         Generate predictions.
         
@@ -374,7 +369,7 @@ class GluformerModel(TransformerModel):
             "forecast_horizon_minutes": len(mean) * 5,
         }
     
-    def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> Dict[str, float]:
+    def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> dict[str, float]:
         """Evaluate model on test data."""
         # Placeholder - implement full evaluation logic
         return {"status": "not_implemented"}

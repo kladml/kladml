@@ -6,13 +6,11 @@ Adds uncertainty-aware metrics and visualizations.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Tuple, Optional
-from datetime import datetime
+from typing import Any, Optional
 import numpy as np
 import torch
 
 from kladml.evaluation.probabilistic import ProbabilisticEvaluator
-from kladml.evaluation.plots import create_figure, save_figure
 
 
 class GluformerEvaluator(ProbabilisticEvaluator):
@@ -28,7 +26,7 @@ class GluformerEvaluator(ProbabilisticEvaluator):
         run_dir: Path, 
         model_path: Path, 
         data_path: Path,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[dict[str, Any]] = None,
         device: str = "cpu"
     ):
         super().__init__(run_dir, model_path, data_path, config)
@@ -66,7 +64,7 @@ class GluformerEvaluator(ProbabilisticEvaluator):
         
         return model
     
-    def load_data(self) -> Tuple[np.ndarray, np.ndarray]:
+    def load_data(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Load evaluation dataset.
         
@@ -144,8 +142,8 @@ class GluformerEvaluator(ProbabilisticEvaluator):
     def inference(
         self, 
         model: torch.jit.ScriptModule, 
-        data: Tuple[np.ndarray, np.ndarray]
-    ) -> Tuple[Dict[str, np.ndarray], np.ndarray]:
+        data: tuple[np.ndarray, np.ndarray]
+    ) -> tuple[dict[str, np.ndarray], np.ndarray]:
         """
         Run inference on the data.
         

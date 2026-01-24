@@ -1,14 +1,13 @@
 
-import os
-import logging
-from typing import Dict, Any, Optional
+from loguru import logger
+from typing import Any, Optional
 import numpy as np
 
 from kladml.models.timeseries.transformer.base import TransformerModel
 from kladml.tasks import MLTask
 from kladml.training.run_id import generate_run_id
 
-logger = logging.getLogger(__name__)
+
 
 class CanBusModel(TransformerModel):
     """
@@ -27,7 +26,7 @@ class CanBusModel(TransformerModel):
         # For now, we reuse TIMESERIES_FORECASTING or define a custom property
         return MLTask.TIMESERIES_FORECASTING 
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         super().__init__(config)
         self.seq_len = self.config.get("seq_len", 120)
         self.num_features = self.config.get("num_features", 5)
@@ -48,7 +47,7 @@ class CanBusModel(TransformerModel):
         ).to(self.device)
         logger.info(f"Initialized CanBusTransformer on {self.device}")
 
-    def train(self, X_train: Any, y_train: Any = None, X_val: Any = None, **kwargs) -> Dict[str, float]:
+    def train(self, X_train: Any, y_train: Any = None, X_val: Any = None, **kwargs) -> dict[str, float]:
         import torch
         from torch.utils.data import DataLoader
         from kladml.models.timeseries.transformer.canbus.dataset import CanBusDataset
@@ -143,7 +142,7 @@ class CanBusModel(TransformerModel):
         return metrics
 
     
-    def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> Dict[str, float]:
+    def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> dict[str, float]:
         """Evaluate model on test set (calculate reconstruction error)."""
         import torch
         from torch.utils.data import DataLoader
@@ -172,7 +171,7 @@ class CanBusModel(TransformerModel):
         logger.info(f"Evaluation Results: {metrics}")
         return metrics
 
-    def predict(self, X: Any, threshold: float = 1.0, sensitivity: float = 1.0) -> Dict[str, Any]:
+    def predict(self, X: Any, threshold: float = 1.0, sensitivity: float = 1.0) -> dict[str, Any]:
         """
         Compute Anomaly Scores (0 to 1).
         

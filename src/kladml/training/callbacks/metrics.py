@@ -1,5 +1,4 @@
 
-from typing import Dict, List, Optional
 from kladml.training.callbacks.base import Callback
 
 class MetricsCallback(Callback):
@@ -13,9 +12,9 @@ class MetricsCallback(Callback):
     """
     
     def __init__(self):
-        self.history: Dict[str, List[float]] = {}
+        self.history: dict[str, list[float]] = {}
     
-    def on_epoch_end(self, epoch: int, logs: Optional[Dict] = None) -> None:
+    def on_epoch_end(self, epoch: int, logs: dict | None = None) -> None:
         """Store metrics from this epoch."""
         if logs:
             for key, value in logs.items():

@@ -6,11 +6,11 @@ Handles specialized wrappers for Edge/TorchScript export.
 
 import torch
 import torch.nn as nn
-from typing import Tuple, Dict, Any, Optional
+from typing import Any, Optional
 from pathlib import Path
-import logging
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+
 
 class GluformerDeploymentWrapper(nn.Module):
     """
@@ -35,7 +35,7 @@ class GluformerDeploymentWrapper(nn.Module):
         # Ensure model is in eval mode
         self.model.eval()
 
-    def forward(self, x_enc: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x_enc: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass for deployment inference.
         

@@ -1,11 +1,10 @@
 
-import os
-import logging
+from pathlib import Path
+from loguru import logger
 import torch
-import torch.nn as nn
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+
 
 class TorchExportMixin:
     """
@@ -62,7 +61,7 @@ class TorchExportMixin:
             traced_model = torch.jit.trace(self.model, dummy_input)
             
             # 3. Save
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             traced_model.save(output_path)
             logger.info(f"✅ Model successfully exported to TorchScript: {output_path}")
             
@@ -100,23 +99,27 @@ class TorchExportMixin:
             dummy_input = torch.randn(1, *input_shape).to(device)
         
         # 2. Export to ONNX
-        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+        path_obj = Path(output_path)
+        (path_obj.parent if path_obj.parent.name else Path(".")).mkdir(parents=True, exist_ok=True)
         
         logger.info(f"Exporting to ONNX with input shape {dummy_input.shape}...")
-        torch.onnx.export(
-            self.model,
-            dummy_input,
-            output_path,
-            export_params=True,
-            opset_version=17,  # 17+ for LayerNormalization support
-            do_constant_folding=True,
-            input_names=['input'],
-            output_names=['output'],
-            dynamic_axes={
-                'input': {0: 'batch_size'},
-                'output': {0: 'batch_size'}
-            }
-        )
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, message=".*dynamic_axes.*")
+            torch.onnx.export(
+                self.model,
+                dummy_input,
+                output_path,
+                export_params=True,
+                opset_version=17,  # 17+ for LayerNormalization support
+                do_constant_folding=True,
+                input_names=['input'],
+                output_names=['output'],
+                dynamic_axes={
+                    'input': {0: 'batch_size'},
+                    'output': {0: 'batch_size'}
+                }
+            )
         logger.info(f"✅ ONNX export complete: {output_path}")
         
         # 3. Validate

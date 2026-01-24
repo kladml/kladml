@@ -1,5 +1,5 @@
 
-import logging
+from loguru import logger
 from typing import Optional, Any
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ from kladml.data.datamodule import BaseDataModule
 from kladml.models.timeseries.transformer.gluformer.dataset import GluformerDataset
 from kladml.data.hdf5_dataset import HDF5GluformerDataset
 
-logger = logging.getLogger(__name__)
+
 
 class GluformerDataModule(BaseDataModule):
     """

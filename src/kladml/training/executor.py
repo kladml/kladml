@@ -10,18 +10,16 @@ Provides local training execution with:
 
 import itertools
 import time
-import logging
+from loguru import logger
 import uuid
-import os
-from typing import Dict, Any, List, Optional, Tuple, Type
-from pathlib import Path
+from typing import Any
 
 from kladml.models.base import BaseModel
 from kladml.interfaces.tracker import TrackerInterface
 from kladml.interfaces.publisher import PublisherInterface
 from kladml.utils.paths import resolve_dataset_path, resolve_preprocessor_path
 
-logger = logging.getLogger(__name__)
+
 
 
 class LocalTrainingExecutor:
@@ -52,11 +50,11 @@ class LocalTrainingExecutor:
     
     def __init__(
         self,
-        model_class: Type[BaseModel],
+        model_class: type[BaseModel],
         experiment_name: str,
-        config: Optional[Dict[str, Any]] = None,
-        tracker: Optional[TrackerInterface] = None,
-        publisher: Optional[PublisherInterface] = None,
+        config: dict[str, Any] | None = None,
+        tracker: TrackerInterface | None = None,
+        publisher: PublisherInterface | None = None,
     ):
         """
         Initialize the executor.
@@ -75,9 +73,9 @@ class LocalTrainingExecutor:
         self.publisher = publisher
         
         # Track best run across grid search
-        self._best_run_id: Optional[str] = None
-        self._best_metric: Optional[float] = None
-        self._best_metrics: Optional[Dict[str, float]] = None
+        self._best_run_id: str | None = None
+        self._best_metric: float | None = None
+        self._best_metrics: dict[str, float] | None = None
         
         # Comparison settings
         self._comparison_metric = self.config.get("comparison_metric", "loss")
@@ -86,8 +84,8 @@ class LocalTrainingExecutor:
     def execute_grid_search(
         self,
         data_path: str,
-        search_space: Dict[str, List[Any]],
-    ) -> List[str]:
+        search_space: dict[str, list[Any]],
+    ) -> list[str]:
         """
         Execute grid search over parameter combinations.
         
@@ -151,10 +149,10 @@ class LocalTrainingExecutor:
     def execute_single(
         self,
         data_path: str,
-        val_path: Optional[str] = None,
-        params: Optional[Dict[str, Any]] = None,
-        run_name: Optional[str] = None,
-    ) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
+        val_path: str | None = None,
+        params: dict[str, Any] | None = None,
+        run_name: str | None = None,
+    ) -> tuple[str | None, dict[str, float] | None]:
         """
         Execute a single training run.
         
@@ -190,10 +188,10 @@ class LocalTrainingExecutor:
     def _execute_single_run(
         self,
         data_path: str,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         run_name: str,
-        val_path: Optional[str] = None,
-    ) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
+        val_path: str | None = None,
+    ) -> tuple[str | None, dict[str, float] | None]:
         """
         Internal method to execute a single run.
         
@@ -283,7 +281,7 @@ class LocalTrainingExecutor:
     def _update_best(
         self,
         run_id: str,
-        metrics: Optional[Dict[str, float]],
+        metrics: dict[str, float] | None,
     ) -> None:
         """Update best run tracking."""
         if not metrics:
@@ -313,7 +311,7 @@ class LocalTrainingExecutor:
     
     def _semantic_run_name(
         self,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         trial: int,
         total: int,
     ) -> str:
@@ -349,8 +347,8 @@ class LocalTrainingExecutor:
     
     @staticmethod
     def _generate_combinations(
-        search_space: Dict[str, List[Any]]
-    ) -> List[Dict[str, Any]]:
+        search_space: dict[str, list[Any]]
+    ) -> list[dict[str, Any]]:
         """Generate all parameter combinations."""
         if not search_space:
             return [{}]
@@ -362,11 +360,11 @@ class LocalTrainingExecutor:
         return [dict(zip(keys, combo)) for combo in combinations]
     
     @property
-    def best_run_id(self) -> Optional[str]:
+    def best_run_id(self) -> str | None:
         """Get the ID of the best run from the last grid search."""
         return self._best_run_id
     
     @property
-    def best_metrics(self) -> Optional[Dict[str, float]]:
+    def best_metrics(self) -> dict[str, float] | None:
         """Get the metrics of the best run from the last grid search."""
         return self._best_metrics

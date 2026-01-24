@@ -4,20 +4,20 @@ Experiment Runner
 Orchestrates ML experiments with dependency injection for all services.
 """
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 from pathlib import Path
 
 from kladml.interfaces import (
     StorageInterface,
-    ConfigInterface,
+    StorageInterface,
     PublisherInterface,
     TrackerInterface,
 )
+from kladml.config.settings import KladMLSettings, settings as global_settings
 from kladml.backends import (
     LocalStorage,
-    YamlConfig,
+    LocalStorage,
     ConsolePublisher,
-    LocalTracker,
 )
 
 
@@ -43,7 +43,7 @@ class ExperimentRunner:
     
     def __init__(
         self,
-        config: Optional[ConfigInterface] = None,
+        config: Optional[KladMLSettings] = None,
         storage: Optional[StorageInterface] = None,
         tracker: Optional[TrackerInterface] = None,
         publisher: Optional[PublisherInterface] = None,
@@ -57,7 +57,7 @@ class ExperimentRunner:
             tracker: Experiment tracker (default: NoOpTracker, or LocalTracker if MLflow installed)
             publisher: Real-time publisher (default: ConsolePublisher)
         """
-        self.config = config or YamlConfig()
+        self.config = config or global_settings
         self.storage = storage or LocalStorage(self.config.artifacts_dir)
         
         # Use NoOpTracker by default - it works without MLflow
@@ -70,14 +70,14 @@ class ExperimentRunner:
     
     def run(
         self,
-        model_class: Type[Any],
+        model_class: type[Any],
         train_data: Any,
         val_data: Optional[Any] = None,
         experiment_name: str = "default",
         run_name: Optional[str] = None,
-        model_config: Optional[Dict[str, Any]] = None,
-        training_config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        model_config: Optional[dict[str, Any]] = None,
+        training_config: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         """
         Run an experiment.
         

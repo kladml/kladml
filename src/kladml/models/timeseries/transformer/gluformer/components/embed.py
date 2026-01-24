@@ -1,11 +1,10 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import math
 
 class PositionalEmbedding(nn.Module):
   def __init__(self, d_model, max_len=5000):
-    super(PositionalEmbedding, self).__init__()
+    super().__init__()
     # Compute the positional encodings once in log space.
     pos_emb = torch.zeros(max_len, d_model)
     pos_emb.require_grad = False
@@ -24,7 +23,7 @@ class PositionalEmbedding(nn.Module):
 
 class TokenEmbedding(nn.Module):
   def __init__(self, c_in, d_model):
-    super(TokenEmbedding, self).__init__()
+    super().__init__()
     self.conv = nn.Conv1d(in_channels=c_in, out_channels=d_model, 
                           kernel_size=3, padding=1, padding_mode='replicate')
     # nn.init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='leaky_relu')
@@ -35,7 +34,7 @@ class TokenEmbedding(nn.Module):
 
 class TemporalEmbedding(nn.Module):
   def __init__(self, d_model, num_features):
-    super(TemporalEmbedding, self).__init__()
+    super().__init__()
     self.embed = nn.Linear(num_features, d_model)
   
   def forward(self, x):
@@ -43,7 +42,7 @@ class TemporalEmbedding(nn.Module):
 
 class SubjectEmbedding(nn.Module):
   def __init__(self, d_model, num_features):
-    super(SubjectEmbedding, self).__init__()
+    super().__init__()
     self.id_embedding = nn.Linear(num_features, d_model)
 
   def forward(self, x):
@@ -53,7 +52,7 @@ class SubjectEmbedding(nn.Module):
 
 class DataEmbedding(nn.Module):
   def __init__(self, d_model, r_drop, num_dynamic_features, num_static_features, c_in=1):
-    super(DataEmbedding, self).__init__()
+    super().__init__()
     # Value Embedding (Target + Covariates if combined)
     self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
     
