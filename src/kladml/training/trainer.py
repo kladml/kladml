@@ -1,14 +1,12 @@
 
-import logging
+from loguru import logger
 import torch
-import platform
-import subprocess
-from typing import Any, Dict, List, Optional, Union, Callable
-from pathlib import Path
+from typing import Any
 
 from kladml.training.callbacks import Callback, CallbackList
+from kladml.config.schema import TrainingConfig
 
-logger = logging.getLogger(__name__)
+
 
 class UniversalTrainer:
     """
@@ -21,20 +19,56 @@ class UniversalTrainer:
     def __init__(
         self,
         max_epochs: int = 10,
-        callbacks: Optional[List[Callback]] = None,
+        callbacks: list[Callback] | None = None,
         accelerator: str = "auto",  # auto, cpu, gpu, mps
-        devices: Union[str, int] = "auto",
-        default_root_dir: Optional[str] = None,
+        devices: str | int = "auto",
+        default_root_dir: str | None = None,
+        config: TrainingConfig | dict | None = None,
     ):
-        self.max_epochs = max_epochs
+        # Resolve config
+        if config is None:
+            # Create from explicit args
+            self.config = TrainingConfig(
+                max_epochs=max_epochs,
+                accelerator=accelerator,
+                devices=devices,
+                default_root_dir=default_root_dir,
+            )
+        elif isinstance(config, dict):
+            # Validate dict
+            # Override with explicit args if they are not default? 
+            # For simplicity: explicit args + dict merging could be complex.
+            # We assume if config is passed, it takes precedence, or explicit args override it.
+            # Let's say explicit args override config if provided?
+            # Actually, standard pattern: explicit args are defaults, config provided overrides them.
+            # But here explicit args have defaults.
+            # Let's construct config from dict.
+            self.config = TrainingConfig(**config)
+        else:
+            self.config = config
+
         self.callbacks = CallbackList(callbacks or [])
-        self.accelerator = accelerator
-        self.devices = devices
-        self.default_root_dir = default_root_dir
         
+        # Expose properties for backward compatibility
         self.device = self._setup_device()
         self.current_epoch = 0
         self.global_step = 0
+        
+    @property
+    def max_epochs(self) -> int:
+        return self.config.max_epochs
+        
+    @property
+    def accelerator(self) -> str:
+        return self.config.accelerator
+        
+    @property
+    def devices(self) -> str | int:
+        return self.config.devices
+        
+    @property
+    def default_root_dir(self) -> str | None:
+        return self.config.default_root_dir
         
     def _setup_device(self) -> torch.device:
         """Determines the hardware device to use."""
@@ -68,8 +102,8 @@ class UniversalTrainer:
         self, 
         model: torch.nn.Module, 
         train_dataloaders: Any, 
-        val_dataloaders: Optional[Any] = None
-    ) -> Dict[str, float]:
+        val_dataloaders: Any | None = None
+    ) -> dict[str, float]:
         """
         Run the full training loop.
         """
@@ -153,7 +187,7 @@ class UniversalTrainer:
             
         return metrics
 
-    def _validate(self, model: torch.nn.Module, dataloader: Any) -> Dict[str, float]:
+    def _validate(self, model: torch.nn.Module, dataloader: Any) -> dict[str, float]:
         model.eval()
         val_loss_acc = 0.0
         num_batches = 0

@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from typing import List, Tuple, Optional
+from typing import Optional
 
 class CanBusDataset(Dataset):
     """
@@ -22,7 +22,7 @@ class CanBusDataset(Dataset):
         scaler_stats: Optional[dict] = None, # {'mean': [...], 'std': [...]}
         window_size: int = 120, # 60 seconds
         step: int = 1,
-        features: List[str] = ['rpm', 'torque', 'speed_kmh', 'accel_pedal']
+        features: list[str] = ['rpm', 'torque', 'speed_kmh', 'accel_pedal']
     ):
         self.path = path
         self.window_size = window_size

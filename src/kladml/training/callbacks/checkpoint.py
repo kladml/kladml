@@ -1,5 +1,5 @@
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from kladml.training.callbacks.base import Callback
 
 class CheckpointCallback(Callback):
@@ -11,7 +11,7 @@ class CheckpointCallback(Callback):
         self.manager = manager
         self.trainer = None
         
-    def on_epoch_end(self, epoch: int, logs: Optional[Dict] = None) -> None:
+    def on_epoch_end(self, epoch: int, logs: Optional[dict] = None) -> None:
         if not self.trainer:
             return
             

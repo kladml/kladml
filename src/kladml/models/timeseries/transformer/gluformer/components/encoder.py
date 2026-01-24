@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -6,7 +5,7 @@ from .attention import *
 
 class ConvLayer(nn.Module):
   def __init__(self, d_model):
-    super(ConvLayer, self).__init__()
+    super().__init__()
     self.downConv = nn.Conv1d(in_channels=d_model, out_channels=d_model,
                               kernel_size=3, padding=1, padding_mode='circular')
     self.norm = nn.BatchNorm1d(d_model)
@@ -23,7 +22,7 @@ class ConvLayer(nn.Module):
 
 class EncoderLayer(nn.Module):
   def __init__(self, att, d_model, d_fcn, r_drop, activ="relu"):
-    super(EncoderLayer, self).__init__()
+    super().__init__()
     
     self.att = att
     self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_fcn, kernel_size=1)
@@ -45,7 +44,7 @@ class EncoderLayer(nn.Module):
 
 class Encoder(nn.Module):
   def __init__(self, enc_layers, conv_layers=None, norm_layer=None):
-    super(Encoder, self).__init__()
+    super().__init__()
     self.enc_layers = nn.ModuleList(enc_layers)
     self.conv_layers = nn.ModuleList(conv_layers) if conv_layers is not None else None
     self.norm = norm_layer

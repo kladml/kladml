@@ -1,12 +1,12 @@
 
-from typing import Dict, Any, Optional
+from typing import Any, Optional
 import torch
 import torch.nn as nn
-import os
-import logging
+from pathlib import Path
+from loguru import logger
 from kladml.models.timeseries.base import TimeSeriesModel
 
-logger = logging.getLogger(__name__)
+
 
 
 from kladml.models.mixins import TorchExportMixin
@@ -23,7 +23,7 @@ class TransformerModel(TorchExportMixin, TimeSeriesModel):
     - TorchScript Export (via TorchExportMixin)
     """
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         super().__init__(config)
         
         # 1. Model Hyperparameters
@@ -80,7 +80,7 @@ class TransformerModel(TorchExportMixin, TimeSeriesModel):
             logger.warning("No model to save.")
             return
             
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
         torch.save({
             'model_state_dict': self.model.state_dict(),
             'config': self.config
@@ -89,7 +89,7 @@ class TransformerModel(TorchExportMixin, TimeSeriesModel):
 
     def load(self, path: str) -> None:
         """Standard PyTorch model loading."""
-        if not os.path.exists(path):
+        if not Path(path).exists():
             raise FileNotFoundError(f"Model file not found: {path}")
             
         # Trusted load for local files

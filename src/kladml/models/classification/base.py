@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any, Optional
 from kladml.models.base import BaseModel
 from kladml.tasks import MLTask
 
@@ -9,7 +9,7 @@ class ClassificationModel(BaseModel):
     Supports Image, Text, and Tabular classification.
     """
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         super().__init__(config)
         self.num_classes = self.config.get("num_classes", 2)
 
@@ -24,5 +24,5 @@ class ClassificationModel(BaseModel):
         return MLTask.IMAGE_CLASSIFICATION
 
     @abstractmethod
-    def train(self, X_train: Any, y_train: Any = None, X_val: Any = None, y_val: Any = None, **kwargs) -> Dict[str, float]:
+    def train(self, X_train: Any, y_train: Any = None, X_val: Any = None, y_val: Any = None, **kwargs) -> dict[str, float]:
         pass

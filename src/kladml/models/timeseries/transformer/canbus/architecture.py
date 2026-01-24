@@ -1,10 +1,9 @@
 
 import torch
 import torch.nn as nn
-from typing import Optional
 
 # Reuse Gluformer components for robustness
-from kladml.models.timeseries.transformer.gluformer.components.embed import DataEmbedding
+
 from kladml.models.timeseries.transformer.gluformer.components.encoder import EncoderLayer, Encoder
 from kladml.models.timeseries.transformer.gluformer.components.attention import MultiheadAttention
 
@@ -37,16 +36,7 @@ class CanBusTransformer(nn.Module):
         super().__init__()
         self.seq_len = seq_len
         
-        # 1. Embedding
-        # We assume static_features=0 for simplicity now, or we can add vehicle ID later.
-        # c_in is the number of dynamic features (RPM, Speed, etc.)
-        self.embedding = DataEmbedding(
-            c_in=num_features,
-            d_model=d_model,
-            r_drop=dropout,
-            num_dynamic_features=0, # Handled by c_in logic in DataEmbedding modification or usage
-            num_static_features=0
-        )
+
         
         # Note on DataEmbedding: KladML's DataEmbedding might be specific to Gluformer.
         # Let's verify arguments. Gluformer uses: 
@@ -107,7 +97,7 @@ class CanBusTransformer(nn.Module):
 class PositionalEncoding(nn.Module):
     """Standard absolute positional encoding."""
     def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
         self.dropout = nn.Dropout(p=dropout)
         
         import math

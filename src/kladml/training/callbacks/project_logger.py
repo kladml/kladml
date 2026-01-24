@@ -1,9 +1,9 @@
 
 import json
-import logging
+import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Optional, Any
 
 from kladml.training.callbacks.base import Callback
 
@@ -82,7 +82,7 @@ class ProjectLogger(Callback):
             self._file_handle.close()
             self._file_handle = None
     
-    def log(self, level: str, message: str, data: Optional[Dict] = None) -> None:
+    def log(self, level: str, message: str, data: Optional[dict] = None) -> None:
         """
         Write a log entry.
         
@@ -127,46 +127,46 @@ class ProjectLogger(Callback):
             if self.console_output and level != "debug":
                 print(line, flush=True)
     
-    def info(self, message: str, data: Optional[Dict] = None) -> None:
+    def info(self, message: str, data: Optional[dict] = None) -> None:
         """Log info message."""
         self.log("info", message, data)
     
-    def warning(self, message: str, data: Optional[Dict] = None) -> None:
+    def warning(self, message: str, data: Optional[dict] = None) -> None:
         """Log warning message."""
         self.log("warning", message, data)
     
-    def error(self, message: str, data: Optional[Dict] = None) -> None:
+    def error(self, message: str, data: Optional[dict] = None) -> None:
         """Log error message."""
         self.log("error", message, data)
     
-    def debug(self, message: str, data: Optional[Dict] = None) -> None:
+    def debug(self, message: str, data: Optional[dict] = None) -> None:
         """Log debug message."""
         self.log("debug", message, data)
     
-    def on_train_begin(self, logs: Optional[Dict] = None) -> None:
+    def on_train_begin(self, logs: Optional[dict] = None) -> None:
         """Log training start."""
         self.info("Training started", logs)
     
-    def on_train_end(self, logs: Optional[Dict] = None) -> None:
+    def on_train_end(self, logs: Optional[dict] = None) -> None:
         """Log training end and close file."""
         self.info("Training completed", logs)
         self._close_file()
     
-    def on_epoch_begin(self, epoch: int, logs: Optional[Dict] = None) -> None:
+    def on_epoch_begin(self, epoch: int, logs: Optional[dict] = None) -> None:
         """Log epoch start."""
         self.debug(f"Epoch {epoch} started", logs)
     
-    def on_epoch_end(self, epoch: int, logs: Optional[Dict] = None) -> None:
+    def on_epoch_end(self, epoch: int, logs: Optional[dict] = None) -> None:
         """Log epoch end with metrics."""
         self.info(f"Epoch {epoch} completed", logs)
     
     
-    def on_batch_end(self, batch: int, logs: Optional[Dict] = None) -> None:
+    def on_batch_end(self, batch: int, logs: Optional[dict] = None) -> None:
         """Log batch (only every N batches to avoid spam)."""
         if batch % 100 == 0:
             self.debug(f"Batch {batch}", logs)
             
-    def log_metrics(self, data: Dict[str, Any]) -> None:
+    def log_metrics(self, data: dict[str, Any]) -> None:
         """Alias for logging generic metric updates (e.g. intra-epoch)."""
         # We assume 'info' level for significant metric updates
         # Optionally, we can make the message generic

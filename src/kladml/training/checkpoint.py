@@ -6,14 +6,13 @@ Handles model checkpoint saving and loading with structured directory layout:
 - models/<project>_<experiment>/best_model.pth
 """
 
-import os
 import json
-import logging
+from loguru import logger
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+
 
 
 class CheckpointManager:
@@ -113,12 +112,12 @@ class CheckpointManager:
         model: Any,
         optimizer: Any,
         epoch: int,
-        metrics: Dict[str, float],
+        metrics: dict[str, float],
         is_best: bool = False,
         comparison_metric: str = "val_loss",
         scaler: Any = None,
         scheduler: Any = None,
-        config: Optional[Dict] = None,
+        config: Optional[dict] = None,
         save_random_states: bool = True,
     ) -> Optional[str]:
         """
@@ -215,7 +214,7 @@ class CheckpointManager:
         scheduler: Any = None,
         device: str = "cpu",
         restore_random_states: bool = False,
-    ) -> Tuple[int, Dict[str, float], Optional[Dict]]:
+    ) -> tuple[int, dict[str, float], Optional[dict]]:
         """
         Load a checkpoint with full training state for resume.
         

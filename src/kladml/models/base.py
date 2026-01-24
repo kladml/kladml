@@ -1,7 +1,7 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
-import numpy as np
+from typing import Any, Optional
+import logging
 
 from kladml.tasks import MLTask
 
@@ -20,7 +20,7 @@ class BaseModel(ABC):
     # API version - increment when interface changes
     API_VERSION = 1
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         """
         Initialize the architecture.
         
@@ -37,7 +37,7 @@ class BaseModel(ABC):
         pass
     
     @abstractmethod
-    def train(self, X_train: Any, y_train: Any = None, X_val: Any = None, y_val: Any = None, **kwargs) -> Dict[str, float]:
+    def train(self, X_train: Any, y_train: Any = None, X_val: Any = None, y_val: Any = None, **kwargs) -> dict[str, float]:
         """
         Train the model.
         
@@ -68,7 +68,7 @@ class BaseModel(ABC):
         pass
         
     @abstractmethod
-    def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> Dict[str, float]:
+    def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> dict[str, float]:
         """
         Evaluate the model on a test set.
         
@@ -101,7 +101,7 @@ class BaseModel(ABC):
         """
         pass
     
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         """Get model parameters."""
         return self.config.copy()
     
@@ -140,7 +140,7 @@ class BaseModel(ABC):
         """
         self.save(path)
     
-    def run_training(self, *args, **kwargs) -> Dict[str, float]:
+    def run_training(self, *args, **kwargs) -> dict[str, float]:
         """
         Full training workflow with automatic post-processing.
         
@@ -161,18 +161,17 @@ class BaseModel(ABC):
             export_dir = self.config.get("export_dir", "./exports")
             export_format = self.config.get("export_format", "onnx")
             
-            import os
-            os.makedirs(export_dir, exist_ok=True)
+            from pathlib import Path
+            Path(export_dir).mkdir(parents=True, exist_ok=True)
             
             model_name = self.config.get("experiment_name", "model")
-            export_path = os.path.join(export_dir, f"{model_name}.{export_format}")
+            export_path = str(Path(export_dir) / f"{model_name}.{export_format}")
             
             try:
                 self.export_model(export_path, format=export_format)
             except NotImplementedError:
                 pass  # Model doesn't support export, that's OK
             except Exception as e:
-                import logging
                 logging.getLogger(__name__).warning(f"Auto-export failed: {e}")
         
         return metrics

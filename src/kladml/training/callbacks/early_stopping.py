@@ -1,9 +1,8 @@
 
-import logging
-from typing import Dict, Optional
+from loguru import logger
 from kladml.training.callbacks.base import Callback
 
-logger = logging.getLogger(__name__)
+
 
 class EarlyStoppingCallback(Callback):
     """
@@ -38,12 +37,12 @@ class EarlyStoppingCallback(Callback):
         self.mode = mode
         self.min_delta = min_delta
         
-        self.best_value: Optional[float] = None
+        self.best_value: float | None = None
         self.counter = 0
         self.should_stop = False
         self.best_epoch = 0
     
-    def on_epoch_end(self, epoch: int, logs: Optional[Dict] = None) -> None:
+    def on_epoch_end(self, epoch: int, logs: dict | None = None) -> None:
         """Check if training should stop."""
         if logs is None or self.metric not in logs:
             return
