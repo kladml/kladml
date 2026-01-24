@@ -5,21 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.5] - 2026-01-24
+## [0.6.0] - 2026-01-24
 
 ### Added
-- **Vision Support:** Added optional `vision` dependency group (Torchvision, Albumentations) and design docs for Lazy Loading.
-- **Callbacks Package:** Refactored monothilic `callbacks.py` into a modular package (`src/kladml/training/callbacks/`).
-- **Data Module Structure:** Introduced new scalable `DataModule` hierarchy for better separation of concerns.
+- **Vision Support:** Added optional `vision` dependency group (Torchvision, Albumentations) and backend support for Lazy Loading.
+- **Callbacks Package:** Refactored monothilic callbacks into a modular package structure.
+- **Data Module:** Introduced scalable DataModule hierarchy.
 
 ### Changed
-- **Architecture Refactor:** Renamed `BaseArchitecture` to `BaseModel` and moved all architectures under `src/kladml/models/`.
-- **Registry Path:** Renamed `models/` directory (artifacts) to `registry/` to avoid confusion with code models.
-- **Tracking:** Relocated default MLflow tracking directory to `data/tracking/mlruns` to keep root clean.
-- **Docs:** Removed `private_docs` from git history (now ignored).
+- **Architecture Refactor:** Renamed `BaseArchitecture` to `BaseModel` and Unified model structure under `src/kladml/models/`.
+- **Registry:** Standardized artifact storage location to `registry/`.
+- **Tracking:** Improved default tracking directory structure.
+- **Documentation:** Comprehensive updates to CLI and Architecture guides.
 
-### Removed
-- **Legacy Components:** Removed deprecated `architectures` module and `private_docs` from version control.
+### Fixed
+- **PyPI Compliance:** License and versioning improvements.
+
+## [0.5.5] - 2026-01-23
+
+### Fixed
+- **Internal:** Minor fixes and dependency adjustments.
 
 ## [0.5.4] - 2026-01-23
 
