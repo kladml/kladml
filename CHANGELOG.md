@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-01-24
+
+### Added
+- **Vision Support:** Added optional `vision` dependency group (Torchvision, Albumentations) and design docs for Lazy Loading.
+- **Callbacks Package:** Refactored monothilic `callbacks.py` into a modular package (`src/kladml/training/callbacks/`).
+- **Data Module Structure:** Introduced new scalable `DataModule` hierarchy for better separation of concerns.
+
+### Changed
+- **Architecture Refactor:** Renamed `BaseArchitecture` to `BaseModel` and moved all architectures under `src/kladml/models/`.
+- **Registry Path:** Renamed `models/` directory (artifacts) to `registry/` to avoid confusion with code models.
+- **Tracking:** Relocated default MLflow tracking directory to `data/tracking/mlruns` to keep root clean.
+- **Docs:** Removed `private_docs` from git history (now ignored).
+
+### Removed
+- **Legacy Components:** Removed deprecated `architectures` module and `private_docs` from version control.
+
+## [0.5.4] - 2026-01-23
+
+### Fixed
+- **PyPI Compliance:** Updated license configuration in `pyproject.toml` and correct version format.
+
 ## [0.5.3] - 2026-01-23
 
 ### Added

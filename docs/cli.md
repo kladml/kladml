@@ -418,54 +418,7 @@ KladML respects these environment variables:
 
 ---
 
-## Quickstart Command
 
-### `kladml quickstart`
-
-**Zero to Training in 60 Seconds** - The universal quickstart command that auto-detects your data type and suggests the best pipeline.
-
-```bash
-kladml quickstart --data <path> [OPTIONS]
-```
-
-**Arguments:**
-
-| Argument | Description |
-|----------|-------------|
-| `--data`, `-d` | Path to your data (CSV, Parquet, folder) |
-
-**Options:**
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--task`, `-t` | (auto) | Force a specific task: `classification`, `regression`, `anomaly`, `forecast`, `clustering` |
-| `--target` | (auto) | Target column for supervised tasks |
-| `--output`, `-o` | `data/projects/quickstart/` | Output directory for results |
-
-**Supported Data Types:**
-
-| Data Type | Detection | Default Pipeline |
-|-----------|-----------|------------------|
-| TABULAR | Numeric CSV/Parquet columns | XGBoost |
-| TIMESERIES | Has datetime column/index | Transformer |
-| IMAGE | Folder with JPG/PNG | ResNet50 |
-| TEXT | CSV with text columns | BERT |
-
-**Examples:**
-
-```bash
-# Auto-detect everything
-kladml quickstart --data customers.csv
-
-# Force classification with specific target
-kladml quickstart --data customers.csv --task classification --target churn
-
-# Image classification
-kladml quickstart --data ./images/
-
-# Time series anomaly detection
-kladml quickstart --data sensor_data.parquet --task anomaly
-```
 
 ---
 

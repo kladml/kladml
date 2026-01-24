@@ -36,87 +36,42 @@ pip install kladml
 
 # Full CLI (for terminal usage with TUI)
 pip install -e ".[all]"
+
+# For Vision support (optional)
+pip install -e ".[vision]"
 ```
 
-## Quick Start
+---
 
-### Zero to Training in 60 Seconds
+## Workflow
 
+### 1. Initialize Workspace
 ```bash
-# The universal quickstart - auto-detects data type and suggests pipeline
-kladml quickstart --data my_data.csv
-
-# Output:
-# 📊 Analyzing data...
-#    Data type: TABULAR (5 columns, 1000 rows)
-#
-# ? What task do you want to perform?
-#   > Classification (detected 'label' column)
-#
-# 🔧 Selected: XGBoostClassifier + ClassificationEvaluator
-# 🚀 Training...
-# ✅ Complete! Results saved to data/projects/quickstart/run_001/
-```
-
-### Traditional Workflow
-
-```bash
-# Initialize workspace
 kladml init
+```
+Creates the standard folder structure (`data/`, `registry/`, `projects/`).
 
-# Launch Interactive TUI
+### 2. Interactive Management (TUI)
+```bash
 kladml ui
+```
+Explore projects, runs, and datasets visually in your terminal.
 
-# Manual training with config
+### 3. Training
+```bash
+# Train using a config file
 kladml train --config data/configs/my_config.yaml
-
-# Evaluate a trained model
-kladml eval --run run_001 --evaluator AnomalyEvaluator
-
-# Hyperparameter tuning with Optuna
-kladml tune --config config.yaml --n-trials 50
 ```
 
-### Create Your Model
-
-```python
-from kladml import TimeSeriesModel, ExperimentRunner
-
-class MyForecaster(TimeSeriesModel):
-    def train(self, X_train, y_train=None, **kwargs):
-        # Your training logic
-        return {"loss": 0.1}
-    
-    def predict(self, X, **kwargs):
-        return predictions
-    
-    def evaluate(self, X_test, y_test=None, **kwargs):
-        return {"mae": 0.5, "mse": 0.25}
-    
-    def save(self, path: str):
-        pass
-    
-    def load(self, path: str):
-        pass
-
-# Run with experiment tracking
-runner = ExperimentRunner()
-result = runner.run(
-    model_class=MyForecaster,
-    train_data=train_data,
-    experiment_name="my-experiment",
-)
-```
-
+---
 
 ## Supported Data Types
 
-| Data Type | Auto-Detection | Default Pipeline |
-|-----------|----------------|------------------|
-| **TABULAR** | CSV/Parquet with numeric columns | XGBoost |
-| **TIMESERIES** | Has datetime column/index | Transformer/Gluformer |
-| **IMAGE** | Folder with JPG/PNG | ResNet50 |
-| **TEXT** | CSV with text columns | BERT |
+| Data Type | Pipeline |
+|-----------|----------|
+| **TABULAR** | XGBoost |
+| **TIMESERIES** | Transformer/Gluformer |
+| **IMAGE** | ResNet50 (Coming Soon) |
 
 ---
 

@@ -4,15 +4,15 @@ KladML provides standardized base classes that ensure your models are portable, 
 
 ---
 
-## BaseArchitecture
+## BaseModel
 
 The core abstract class that all models inherit from.
 
 ```python
-from kladml import BaseArchitecture
+from kladml import BaseModel
 
-class BaseArchitecture(ABC):
-    """Base class for all ML architectures."""
+class BaseModel(ABC):
+    """Base class for all ML models."""
     
     @abstractmethod
     def train(self, X_train, y_train=None, X_val=None, y_val=None, **kwargs) -> Dict[str, Any]:

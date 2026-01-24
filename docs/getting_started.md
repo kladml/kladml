@@ -21,34 +21,13 @@ kladml version
 
 ---
 
-## Option 1: Universal Quickstart (Recommended)
+## Option 1: Universal Quickstart
 
-**Zero to Training in 60 Seconds** - Just point KladML at your data:
-
-```bash
-kladml quickstart --data my_data.csv
-```
-
-KladML will:
-
-1. 📊 **Analyze** your data (detect type: tabular, timeseries, image, text)
-2. 🎯 **Suggest** a task (classification, regression, anomaly, etc.)
-3. 🔧 **Select** the best pipeline (preprocessors + architecture + evaluator)
-4. 🚀 **Train** the model
-5. 📈 **Evaluate** and generate a report
-
-### Supported Data Types
-
-| Data Type | Auto-Detection | Example Pipeline |
-|-----------|----------------|------------------|
-| TABULAR | Numeric CSV/Parquet | XGBoost + StandardScaler |
-| TIMESERIES | Has datetime column | Transformer + Window |
-| IMAGE | Folder of JPG/PNG | ResNet50 Transfer |
-| TEXT | CSV with text columns | BERT Classifier |
+> **Note:** The `quickstart` command is currently under maintenance. Please use the interactive workflow below.
 
 ---
 
-## Option 2: Interactive TUI
+## Option 2: Interactive TUI (Recommended)
 
 Launch the Terminal User Interface for a guided experience:
 
@@ -140,9 +119,9 @@ kladml tune --config config.yaml --n-trials 50 --timeout 3600
 ## Create Custom Models
 
 ```python
-from kladml import BaseArchitecture, MLTask
+from kladml import BaseModel, MLTask
 
-class MyModel(BaseArchitecture):
+class MyModel(BaseModel):
     
     @property
     def ml_task(self):

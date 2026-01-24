@@ -226,7 +226,7 @@ KladML uses a modular interface-based design. This ensures your training code is
 Starting from v0.3.0, KladML standardizes the training lifecycle for all models.
 
 ### Standard Features
-Every model inheriting from `BaseArchitecture` automatically gets:
+Every model inheriting from `BaseModel` automatically gets:
 
 1.  **Structured Logging**: Training logs are saved to `data/projects/<project>/<experiment>/<run_id>/training.jsonl`.
 2.  **Automatic Checkpointing**: 
