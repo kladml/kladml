@@ -105,7 +105,7 @@ def _resolve_model_class(model_identifier: str):
 def _load_yaml_config(config_path: str) -> dict:
     """Load configuration from YAML file."""
     import yaml
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         return yaml.safe_load(f) or {}
 
 

@@ -7,7 +7,7 @@ Now includes management methods for creating and retrieving experiments/runs.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, List
+from typing import Any
 
 
 class TrackerInterface(ABC):
@@ -22,7 +22,7 @@ class TrackerInterface(ABC):
     # --- Management Methods ---
     
     @abstractmethod
-    def search_experiments(self, filter_string: Optional[str] = None) -> List[Dict[str, Any]]:
+    def search_experiments(self, filter_string: str | None = None) -> list[dict[str, Any]]:
         """
         Search for experiments.
         
@@ -32,7 +32,8 @@ class TrackerInterface(ABC):
         pass
     
     @abstractmethod
-    def get_experiment_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    @abstractmethod
+    def get_experiment_by_name(self, name: str) -> dict[str, Any] | None:
         """Get experiment details by name."""
         pass
     
@@ -45,15 +46,15 @@ class TrackerInterface(ABC):
     def search_runs(
         self, 
         experiment_id: str, 
-        filter_string: Optional[str] = None,
+        filter_string: str | None = None,
         max_results: int = 100,
-        order_by: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        order_by: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """Search for runs in an experiment."""
         pass
         
     @abstractmethod
-    def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+    def get_run(self, run_id: str) -> dict[str, Any] | None:
         """Get run details by ID."""
         pass
 
@@ -63,9 +64,9 @@ class TrackerInterface(ABC):
     def start_run(
         self, 
         experiment_name: str, 
-        run_name: Optional[str] = None,
-        run_id: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None
+        run_name: str | None = None,
+        run_id: str | None = None,
+        tags: dict[str, str] | None = None
     ) -> str:
         """
         Start a new tracking run.
@@ -97,22 +98,22 @@ class TrackerInterface(ABC):
         pass
     
     @abstractmethod
-    def log_params(self, params: Dict[str, Any]) -> None:
+    def log_params(self, params: dict[str, Any]) -> None:
         """Log multiple parameters."""
         pass
     
     @abstractmethod
-    def log_metric(self, key: str, value: float, step: Optional[int] = None) -> None:
+    def log_metric(self, key: str, value: float, step: int | None = None) -> None:
         """Log a single metric."""
         pass
     
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
         """Log multiple metrics."""
         pass
     
     @abstractmethod
-    def log_artifact(self, local_path: str, artifact_path: Optional[str] = None) -> None:
+    def log_artifact(self, local_path: str, artifact_path: str | None = None) -> None:
         """
         Log a local file or directory as an artifact.
         
@@ -136,7 +137,7 @@ class TrackerInterface(ABC):
     
     @property
     @abstractmethod
-    def active_run_id(self) -> Optional[str]:
+    def active_run_id(self) -> str | None:
         """Get the ID of the currently active run, or None."""
         pass
     

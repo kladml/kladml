@@ -23,7 +23,6 @@ Schema:
 import pandas as pd
 import numpy as np
 import joblib
-import os
 from pathlib import Path
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
@@ -37,7 +36,7 @@ def process_cgm_um():
     """Process CGM UM dataset (Glucose only)."""
     print("Processing CGM UM dataset...")
     path = "data/datasets/glucose/cgm_um_train.pkl"
-    if not os.path.exists(path):
+    if not Path(path).exists():
         print(f"❌ {path} not found")
         return []
         
@@ -63,7 +62,7 @@ def process_hall():
     """Process Hall dataset (Glucose + Insulin)."""
     print("Processing Hall dataset...")
     path = "data/datasets/hall/hall.csv"
-    if not os.path.exists(path):
+    if not Path(path).exists():
         print(f"❌ {path} not found")
         return []
         

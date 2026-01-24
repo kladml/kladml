@@ -1,18 +1,17 @@
 
-import os
-import glob
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import io
-import logging
+from loguru import logger
 import gc
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from typing import List, Optional, Any
-from ..pipeline import PipelineComponent, DatasetMetadata
+from typing import Optional, Any
+from ..pipeline import PipelineComponent
 from ..components.resampling import TimeResampler
 
 # Setup logging
-logger = logging.getLogger(__name__)
+
 
 # J1939 PGNs
 PGN_EEC1 = 0xF004  # RPM, Torque
@@ -161,11 +160,12 @@ class J1939Parser(PipelineComponent):
         Processes all files in input_root and saves to self.output_file.
         Returns path to output file.
         """
-        self.temp_dir = os.path.join(input_root, "temp_chunks")
-        os.makedirs(self.temp_dir, exist_ok=True)
+        self.temp_dir = Path(input_root) / "temp_chunks"
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info(f"Scanning {input_root}...")
-        all_files = glob.glob(os.path.join(input_root, "**", "*.csv"), recursive=True)
+        all_files = list(Path(input_root).rglob("*.csv"))
+        all_files = [str(f) for f in all_files]  # Convert back to str for processing if needed
         all_files.sort()
         
         if self.max_files:
@@ -216,9 +216,9 @@ class J1939Parser(PipelineComponent):
             if resampled_chunk.empty:
                 continue
             
-            save_path = os.path.join(self.temp_dir, f"resampled_batch_{b_idx}.parquet")
+            save_path = self.temp_dir / f"resampled_batch_{b_idx}.parquet"
             resampled_chunk.to_parquet(save_path)
-            temp_chunk_paths.append(save_path)
+            temp_chunk_paths.append(str(save_path))
             
             del raw_dfs, batch_raw, resampled_chunk, resampler
             gc.collect()
@@ -257,11 +257,11 @@ class J1939Parser(PipelineComponent):
         logger.info("Cleaning temps...")
         for p in temp_chunk_paths:
             try:
-                os.remove(p)
+                Path(p).unlink()
             except:
                 pass
         try:
-            os.rmdir(self.temp_dir)
+            self.temp_dir.rmdir()
         except:
             pass
         

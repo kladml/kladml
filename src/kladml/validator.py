@@ -9,10 +9,8 @@ import yaml
 import zipfile
 import tempfile
 import importlib.util
-import inspect
-import os
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -36,9 +34,9 @@ class ValidationResult:
     """Result of package validation."""
     valid: bool
     package_type: Optional[PackageType] = None
-    manifest: Optional[Dict[str, Any]] = None
-    errors: List[ValidationError] = field(default_factory=list)
-    warnings: List[ValidationError] = field(default_factory=list)
+    manifest: Optional[dict[str, Any]] = None
+    errors: list[ValidationError] = field(default_factory=list)
+    warnings: list[ValidationError] = field(default_factory=list)
     
     def add_error(self, field: str, message: str):
         self.errors.append(ValidationError(field, message, "error"))
@@ -55,7 +53,7 @@ class KladManifestParser:
     VALID_TYPES = ["architecture", "preprocessor"]
     SUPPORTED_KLAD_VERSIONS = ["1.0"]
     
-    def parse(self, yaml_content: str) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+    def parse(self, yaml_content: str) -> tuple[Optional[dict[str, Any]], list[str]]:
         """
         Parse klad.yaml content.
         
@@ -122,7 +120,7 @@ class PackageValidator:
         result = ValidationResult(valid=True)
         
         # Check file exists
-        if not os.path.exists(zip_path):
+        if not Path(zip_path).exists():
             result.add_error("file", f"File not found: {zip_path}")
             return result
         
@@ -149,8 +147,8 @@ class PackageValidator:
                     return result
                 
                 # Parse and validate manifest
-                manifest_path = os.path.join(package_root, "klad.yaml")
-                with open(manifest_path, 'r') as f:
+                manifest_path = Path(package_root) / "klad.yaml"
+                with open(manifest_path) as f:
                     manifest_content = f.read()
                 
                 manifest, parse_errors = self.manifest_parser.parse(manifest_content)
@@ -178,42 +176,41 @@ class PackageValidator:
     def _find_package_root(self, tmpdir: str) -> Optional[str]:
         """Find the directory containing klad.yaml."""
         # Check root level
-        if os.path.exists(os.path.join(tmpdir, "klad.yaml")):
+        if (Path(tmpdir) / "klad.yaml").exists():
             return tmpdir
         
         # Check one level deep
-        for item in os.listdir(tmpdir):
-            item_path = os.path.join(tmpdir, item)
-            if os.path.isdir(item_path):
-                if os.path.exists(os.path.join(item_path, "klad.yaml")):
-                    return item_path
+        for item in Path(tmpdir).iterdir():
+            if item.is_dir():
+                if (item / "klad.yaml").exists():
+                    return str(item)
         
         return None
     
     def _validate_structure(self, package_root: str, result: ValidationResult):
         """Validate required files exist."""
         for required_file in self.REQUIRED_FILES:
-            file_path = os.path.join(package_root, required_file)
-            if not os.path.exists(file_path):
+            file_path = Path(package_root) / required_file
+            if not file_path.exists():
                 result.add_error("structure", f"Missing required file: {required_file}")
     
-    def _validate_entry_point(self, package_root: str, manifest: Dict, result: ValidationResult):
+    def _validate_entry_point(self, package_root: str, manifest: dict, result: ValidationResult):
         """Validate that the entry point module exists."""
         entry_point = manifest.get("entry_point", {})
         module_name = entry_point.get("module", "")
         
         # Check for .py file
-        module_file = os.path.join(package_root, f"{module_name}.py")
-        if not os.path.exists(module_file):
+        module_file = Path(package_root) / f"{module_name}.py"
+        if not module_file.exists():
             result.add_error("entry_point", f"Entry point module not found: {module_name}.py")
     
-    def _validate_interface(self, package_root: str, manifest: Dict, result: ValidationResult):
+    def _validate_interface(self, package_root: str, manifest: dict, result: ValidationResult):
         """Validate that the class implements required interface."""
         entry_point = manifest.get("entry_point", {})
         module_name = entry_point.get("module", "")
         class_name = entry_point.get("class", "")
         
-        module_file = os.path.join(package_root, f"{module_name}.py")
+        module_file = Path(package_root) / f"{module_name}.py"
         
         try:
             # Load module dynamically

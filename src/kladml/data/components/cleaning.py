@@ -1,14 +1,13 @@
 
 import pandas as pd
-import numpy as np
-from typing import Any, Dict, List, Optional
+from typing import Any
 from ..pipeline import PipelineComponent
 
 class J1939Cleaner(PipelineComponent):
     """
     Cleans J1939 data by masking error codes (fe, ff bytes) and impossible values.
     """
-    def __init__(self, limits: Dict[str, float] = None):
+    def __init__(self, limits: dict[str, float] | None = None):
         # Default limits based on SAE J1939 standard ranges
         self.limits = limits or {
             "rpm": 8031.875,

@@ -6,7 +6,6 @@ This allows swapping the backend (e.g., SQLite vs Postgres) without changing CLI
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -14,7 +13,7 @@ from datetime import datetime
 class ProjectDTO:
     id: str
     name: str
-    description: Optional[str]
+    description: str | None
     created_at: datetime
     updated_at: datetime
     family_count: int
@@ -25,8 +24,8 @@ class FamilyDTO:
     name: str
     project_id: str
     project_name: str
-    description: Optional[str]
-    experiment_names: List[str]
+    description: str | None
+    experiment_names: list[str]
     created_at: datetime
 
 @dataclass
@@ -34,35 +33,35 @@ class DatasetDTO:
     id: str
     name: str
     path: str
-    description: Optional[str]
+    description: str | None
     created_at: datetime
 
 class MetadataInterface(ABC):
     """Abstract interface for metadata management."""
     
     @abstractmethod
-    def create_dataset(self, name: str, path: str, description: Optional[str] = None) -> DatasetDTO:
+    def create_dataset(self, name: str, path: str, description: str | None = None) -> DatasetDTO:
         """Create a new dataset."""
         pass
 
     @abstractmethod
-    def list_datasets(self) -> List[DatasetDTO]:
+    def list_datasets(self) -> list[DatasetDTO]:
         """List all datasets."""
         pass
     
     # Project Methods
     @abstractmethod
-    def create_project(self, name: str, description: Optional[str] = None) -> ProjectDTO:
+    def create_project(self, name: str, description: str | None = None) -> ProjectDTO:
         """Create a new project."""
         pass
         
     @abstractmethod
-    def get_project(self, name: str) -> Optional[ProjectDTO]:
+    def get_project(self, name: str) -> ProjectDTO | None:
         """Get a project by name."""
         pass
         
     @abstractmethod
-    def list_projects(self) -> List[ProjectDTO]:
+    def list_projects(self) -> list[ProjectDTO]:
         """List all projects."""
         pass
         
@@ -73,17 +72,17 @@ class MetadataInterface(ABC):
 
     # Family Methods
     @abstractmethod
-    def create_family(self, name: str, project_name: str, description: Optional[str] = None) -> FamilyDTO:
+    def create_family(self, name: str, project_name: str, description: str | None = None) -> FamilyDTO:
         """Create a new family in a project."""
         pass
         
     @abstractmethod
-    def get_family(self, name: str, project_name: str) -> Optional[FamilyDTO]:
+    def get_family(self, name: str, project_name: str) -> FamilyDTO | None:
         """Get a family by name and project."""
         pass
         
     @abstractmethod
-    def list_families(self, project_name: Optional[str] = None) -> List[FamilyDTO]:
+    def list_families(self, project_name: str | None = None) -> list[FamilyDTO]:
         """List families, optionally filtered by project."""
         pass
         

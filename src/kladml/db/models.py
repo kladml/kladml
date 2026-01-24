@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Any
 from enum import Enum
-from uuid import UUID, uuid4
 from sqlmodel import Field, SQLModel, Relationship
 from sqlalchemy import Column, JSON
 
@@ -27,23 +26,23 @@ class DataType(str, Enum):
 # --- Models ---
 
 class Project(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
-    description: Optional[str] = None
+    description: str | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
     
     # Relationships
-    families: List["Family"] = Relationship(back_populates="project")
+    families: list["Family"] = Relationship(back_populates="project")
 
 class Family(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
-    description: Optional[str] = None
+    description: str | None = None
     project_id: int = Field(foreign_key="project.id")
     
     # Store experiment names as a JSON list of strings
-    experiment_names: List[str] = Field(default=[], sa_column=Column(JSON))
+    experiment_names: list[str] = Field(default=[], sa_column=Column(JSON))
     
     created_at: datetime = Field(default_factory=utc_now)
     
@@ -61,21 +60,26 @@ class Family(SQLModel, table=True):
             self.experiment_names = [e for e in self.experiment_names if e != experiment_name]
 
 class Dataset(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
     path: str
-    description: Optional[str] = None
+    description: str | None = None
     data_type: DataType = Field(default=DataType.OTHER)
     
     created_at: datetime = Field(default_factory=utc_now)
 
-class ModelArtifact(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+class RegistryArtifact(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     version: str = Field(index=True)
+    artifact_type: str = Field(index=True) # model, preprocessor, dataset, etc.
     path: str # Path in registry
-    run_id: Optional[str] = Field(default=None, index=True)
+    run_id: str | None = Field(default=None, index=True)
     status: str = Field(default="production") # production, staging, archived
+    
+    # Metadata
+    tags: list[str] = Field(default=[], sa_column=Column(JSON))
+    metadata_json: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
     
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)

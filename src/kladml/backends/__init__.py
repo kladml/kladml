@@ -5,7 +5,7 @@ Light implementations of interfaces for standalone/local use.
 """
 
 from kladml.backends.local_storage import LocalStorage
-from kladml.backends.local_config import YamlConfig
+
 from kladml.backends.console_publisher import ConsolePublisher, NoOpPublisher
 from kladml.backends.local_tracker import LocalTracker, NoOpTracker
 from kladml.backends.local_metadata import LocalMetadata
@@ -23,7 +23,7 @@ def get_tracker_backend() -> TrackerInterface:
 
 __all__ = [
     "LocalStorage",
-    "YamlConfig",
+
     "ConsolePublisher",
     "NoOpPublisher",
     "LocalTracker",

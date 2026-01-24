@@ -6,7 +6,6 @@ CLI command to analyze and classify .pkl dataset files.
 
 import typer
 from pathlib import Path
-from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -123,7 +122,6 @@ def inspect_dataset(
         kladml data inspect ./data/datasets/glucose/cgm_um_train.pkl
         kladml data inspect ./data/datasets/glucose/  # Inspect all in directory
     """
-    import numpy as np
     
     target = Path(path)
     

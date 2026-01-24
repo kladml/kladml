@@ -6,7 +6,6 @@ Allows Core ML code to work with any storage backend (MinIO, S3, local filesyste
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 
 class StorageInterface(ABC):
@@ -49,7 +48,7 @@ class StorageInterface(ABC):
         pass
     
     @abstractmethod
-    def list_objects(self, bucket: str, prefix: str = "") -> List[str]:
+    def list_objects(self, bucket: str, prefix: str = "") -> list[str]:
         """
         List objects in a bucket with optional prefix filter.
         

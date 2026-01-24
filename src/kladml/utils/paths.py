@@ -9,9 +9,7 @@ data/
 └── projects/        # Project artifacts
 """
 
-import os
 from pathlib import Path
-from typing import Union
 
 # Constants for directory structure
 DATA_DIR = "data"

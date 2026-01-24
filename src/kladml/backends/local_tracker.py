@@ -5,15 +5,15 @@ MLflow-based local tracking with SQLite backend.
 Implements TrackerInterface.
 """
 
-import os
+
 from pathlib import Path
-from typing import Any, Dict, Optional, List
-import logging
+from typing import Any
+from loguru import logger
 
 from kladml.interfaces import TrackerInterface
 from kladml.config.settings import settings
 
-logger = logging.getLogger(__name__)
+
 
 
 class LocalTracker(TrackerInterface):
@@ -23,7 +23,7 @@ class LocalTracker(TrackerInterface):
     All data is stored locally - no server required.
     """
     
-    def __init__(self, tracking_dir: Optional[str] = None):
+    def __init__(self, tracking_dir: str | None = None):
         """
         Initialize local tracker.
         
@@ -80,7 +80,7 @@ class LocalTracker(TrackerInterface):
 
     # --- Management Methods ---
 
-    def search_experiments(self, filter_string: Optional[str] = None) -> List[Dict[str, Any]]:
+    def search_experiments(self, filter_string: str | None = None) -> list[dict[str, Any]]:
         """Search for experiments."""
         mlflow = self._ensure_mlflow()
         try:
@@ -99,7 +99,7 @@ class LocalTracker(TrackerInterface):
             logger.error(f"Failed to search experiments: {e}")
             return []
 
-    def get_experiment_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_experiment_by_name(self, name: str) -> dict[str, Any] | None:
         """Get experiment details by name."""
         mlflow = self._ensure_mlflow()
         try:
@@ -128,10 +128,10 @@ class LocalTracker(TrackerInterface):
     def search_runs(
         self, 
         experiment_id: str, 
-        filter_string: Optional[str] = None,
+        filter_string: str | None = None,
         max_results: int = 100,
-        order_by: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        order_by: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """Search for runs in an experiment."""
         mlflow = self._ensure_mlflow()
         try:
@@ -159,7 +159,7 @@ class LocalTracker(TrackerInterface):
             logger.warning(f"Failed to search runs for exp '{experiment_id}': {e}")
             return []
 
-    def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+    def get_run(self, run_id: str) -> dict[str, Any] | None:
         """Get run details by ID."""
         mlflow = self._ensure_mlflow()
         try:
@@ -184,9 +184,9 @@ class LocalTracker(TrackerInterface):
     def start_run(
         self, 
         experiment_name: str, 
-        run_name: Optional[str] = None,
-        run_id: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None
+        run_name: str | None = None,
+        run_id: str | None = None,
+        tags: dict[str, str] | None = None
     ) -> str:
         """Start a new tracking run, optionally with a custom run_id."""
         mlflow = self._ensure_mlflow()
@@ -210,7 +210,7 @@ class LocalTracker(TrackerInterface):
         if self._mlflow:
             self._mlflow.log_param(key, value)
     
-    def log_params(self, params: Dict[str, Any]) -> None:
+    def log_params(self, params: dict[str, Any]) -> None:
         """Log multiple parameters."""
         if self._mlflow:
             # Filter None values
@@ -218,17 +218,17 @@ class LocalTracker(TrackerInterface):
             if clean_params:
                 self._mlflow.log_params(clean_params)
     
-    def log_metric(self, key: str, value: float, step: Optional[int] = None) -> None:
+    def log_metric(self, key: str, value: float, step: int | None = None) -> None:
         """Log a single metric."""
         if self._mlflow:
             self._mlflow.log_metric(key, value, step=step)
     
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
         """Log multiple metrics."""
         if self._mlflow:
             self._mlflow.log_metrics(metrics, step=step)
     
-    def log_artifact(self, local_path: str, artifact_path: Optional[str] = None) -> None:
+    def log_artifact(self, local_path: str, artifact_path: str | None = None) -> None:
         """Log a file or directory as an artifact."""
         if self._mlflow:
             self._mlflow.log_artifact(local_path, artifact_path)
@@ -248,10 +248,10 @@ class LocalTracker(TrackerInterface):
             try:
                 self._mlflow.log_artifact(temp_path, artifact_path)
             finally:
-                os.unlink(temp_path)
+                Path(temp_path).unlink(missing_ok=True)
     
     @property
-    def active_run_id(self) -> Optional[str]:
+    def active_run_id(self) -> str | None:
         """Get the ID of the currently active run."""
         if self._active_run:
             return self._active_run.info.run_id
