@@ -7,9 +7,9 @@ Uses Template Method pattern for the evaluation pipeline.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Optional
 from datetime import datetime
-import logging
+from loguru import logger
 import json
 
 
@@ -33,7 +33,7 @@ class BaseEvaluator(ABC):
         run_dir: Path, 
         model_path: Path, 
         data_path: Path,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None
     ):
         """
         Initialize the evaluator.
@@ -54,7 +54,7 @@ class BaseEvaluator(ABC):
         self.plots_dir.mkdir(parents=True, exist_ok=True)
         
         # State
-        self.metrics: Dict[str, float] = {}
+        self.metrics: dict[str, float] = {}
         self.predictions = None
         self.targets = None
         self._start_time: Optional[datetime] = None
@@ -63,34 +63,10 @@ class BaseEvaluator(ABC):
         # Initialize logger
         self._logger = self._init_logger()
     
-    def _init_logger(self) -> logging.Logger:
-        """Initialize file logger for evaluation."""
-        logger = logging.getLogger(f"evaluator.{self.__class__.__name__}")
-        logger.setLevel(logging.DEBUG)
-        
-        # Clear existing handlers
-        logger.handlers = []
-        
-        # File handler
-        log_file = self.run_dir / "evaluation.log"
-        file_handler = logging.FileHandler(log_file, mode="w")
-        file_handler.setLevel(logging.DEBUG)
-        
-        # Format
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        
-        # Console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
-        
-        return logger
+    def _init_logger(self):
+        """Initialize (noop for loguru)."""
+        # Loguru is global, but we can bind context if needed
+        return logger.bind(context=self.__class__.__name__)
     
     @abstractmethod
     def load_model(self) -> Any:
@@ -113,7 +89,7 @@ class BaseEvaluator(ABC):
         pass
     
     @abstractmethod
-    def inference(self, model: Any, data: Any) -> Tuple[Any, Any]:
+    def inference(self, model: Any, data: Any) -> tuple[Any, Any]:
         """
         Run inference on the data.
         
@@ -127,7 +103,7 @@ class BaseEvaluator(ABC):
         pass
     
     @abstractmethod
-    def compute_metrics(self, predictions: Any, targets: Any) -> Dict[str, float]:
+    def compute_metrics(self, predictions: Any, targets: Any) -> dict[str, float]:
         """
         Compute evaluation metrics.
         
@@ -181,7 +157,7 @@ class BaseEvaluator(ABC):
         self._logger.info(f"Saved metrics: {metrics_path}")
         return metrics_path
     
-    def run(self) -> Dict[str, float]:
+    def run(self) -> dict[str, float]:
         """
         Template Method: Execute the full evaluation pipeline.
         

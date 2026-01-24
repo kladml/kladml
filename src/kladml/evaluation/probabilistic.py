@@ -1,9 +1,6 @@
 
 import numpy as np
-import logging
-from typing import Dict, Tuple, Any
-from .timeseries import TimeSeriesEvaluator
-from .plots import create_figure, save_figure
+from loguru import logger
 
 class ProbabilisticEvaluator(TimeSeriesEvaluator):
     """
@@ -36,7 +33,7 @@ class ProbabilisticEvaluator(TimeSeriesEvaluator):
         elif "std" in predictions:
             sigma = predictions["std"]
         else:
-            self._logger.warning("No uncertainty info (logvar/variance/std) found. Skipping probabilistic metrics.")
+            logger.warning("No uncertainty info (logvar/variance/std) found. Skipping probabilistic metrics.")
             return base_metrics
 
         # Probabilistic Metrics
