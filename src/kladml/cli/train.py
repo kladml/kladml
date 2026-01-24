@@ -34,13 +34,13 @@ def _load_model_class_from_path(model_path: str):
     sys.modules["user_model"] = module
     spec.loader.exec_module(module)
     
-    from kladml.base import BaseArchitecture
+    from kladml.models.base import BaseModel
     for name in dir(module):
         obj = getattr(module, name)
         if (
             isinstance(obj, type) 
-            and issubclass(obj, BaseArchitecture) 
-            and obj is not BaseArchitecture
+            and issubclass(obj, BaseModel) 
+            and obj is not BaseModel
         ):
             return obj
     
@@ -63,22 +63,22 @@ def _resolve_model_class(model_identifier: str):
         
     # 2. Try loading as architecture name
     try:
-        # Import module: kladml.architectures.{name}
-        module_path = f"kladml.architectures.{model_identifier}"
+        # Import module: kladml.models.{name}
+        module_path = f"kladml.models.{model_identifier}"
         try:
             module = importlib.import_module(module_path)
         except ImportError:
-             raise ValueError(f"Architecture '{model_identifier}' not found in kladml.architectures")
+             raise ValueError(f"Model '{model_identifier}' not found in kladml.models")
 
-        from kladml.base import BaseArchitecture
+        from kladml.models.base import BaseModel
         
-        # Check module's __init__ for a subclass of BaseArchitecture
+        # Check module's __init__ for a subclass of BaseModel
         for name in dir(module):
             obj = getattr(module, name)
             if (
                 isinstance(obj, type) 
-                and issubclass(obj, BaseArchitecture) 
-                and obj is not BaseArchitecture
+                and issubclass(obj, BaseModel) 
+                and obj is not BaseModel
             ):
                 return obj
                 
@@ -89,14 +89,14 @@ def _resolve_model_class(model_identifier: str):
                 obj = getattr(model_submodule, name)
                 if (
                     isinstance(obj, type) 
-                    and issubclass(obj, BaseArchitecture) 
-                    and obj is not BaseArchitecture
+                    and issubclass(obj, BaseModel) 
+                    and obj is not BaseModel
                 ):
                     return obj
         except ImportError:
             pass
             
-        raise ValueError(f"No BaseArchitecture subclass found in {module_path}")
+        raise ValueError(f"No BaseModel subclass found in {module_path}")
         
     except Exception as e:
         raise ValueError(f"Could not load model '{model_identifier}': {e}")
