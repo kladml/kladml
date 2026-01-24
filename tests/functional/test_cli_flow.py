@@ -13,10 +13,10 @@ from kladml.db.session import reset_db, init_db
 
 # Mock model content for training test
 DUMMY_MODEL_CONTENT = """
-from kladml.base import BaseArchitecture
+from kladml.models.base import BaseModel
 from kladml.tasks import MLTask
 
-class TestModel(BaseArchitecture):
+class TestModel(BaseModel):
     def __init__(self, **kwargs):
         super().__init__()
     

@@ -7,7 +7,7 @@ import os
 import tempfile
 import numpy as np
 
-from kladml.architectures.canbus.model import CanBusModel
+from kladml.models.timeseries.transformer.canbus.model import CanBusModel
 
 
 @pytest.fixture

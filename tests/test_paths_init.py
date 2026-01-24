@@ -32,7 +32,7 @@ def test_ensure_data_structure(workspace):
     assert root.exists()
     assert (root / "datasets").exists()
     assert (root / "preprocessors").exists()
-    assert (root / "models").exists()
+    assert (root / "registry").exists()
     assert (root / "projects").exists()
 
 def test_resolve_paths(workspace):
@@ -49,12 +49,12 @@ def test_resolve_paths(workspace):
     assert resolve_dataset_path("local.csv") == rel_file.resolve()
     
     # 3. Non-existent path -> maps to data/datasets/NAME
-    expected = workspace / DATA_DIR / DATASETS_DIR / "my_dataset"
-    assert resolve_dataset_path("my_dataset") == expected
+    expected = (workspace / DATA_DIR / DATASETS_DIR / "my_dataset").resolve()
+    assert resolve_dataset_path("my_dataset").resolve() == expected
     
     # 4. Preprocessor logic (same)
-    expected_prep = workspace / DATA_DIR / PREPROCESSORS_DIR / "prep.py"
-    assert resolve_preprocessor_path("prep.py") == expected_prep
+    expected_prep = (workspace / DATA_DIR / PREPROCESSORS_DIR / "prep.py").resolve()
+    assert resolve_preprocessor_path("prep.py").resolve() == expected_prep
 
 def test_init_command(workspace):
     """Test 'kladml init' command."""

@@ -11,12 +11,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, ANY
 
 from kladml.training.executor import LocalTrainingExecutor
-from kladml.base import BaseArchitecture
+from kladml.models.base import BaseModel
 from kladml.interfaces import TrackerInterface
 
 from kladml.tasks import MLTask
 
-class DummyModel(BaseArchitecture):
+class DummyModel(BaseModel):
     """Dummy model for testing."""
     def __init__(self, **kwargs):
         super().__init__()

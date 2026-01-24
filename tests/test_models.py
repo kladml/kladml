@@ -6,7 +6,7 @@ import pytest
 from abc import ABC
 
 from kladml import (
-    BaseArchitecture,
+    BaseModel,
     BasePreprocessor,
     TimeSeriesModel,
     ClassificationModel,
@@ -14,19 +14,19 @@ from kladml import (
 )
 
 
-class TestBaseArchitecture:
-    """Test BaseArchitecture abstract class."""
+class TestBaseModel:
+    """Test BaseModel abstract class."""
     
     def test_is_abstract(self):
-        assert issubclass(BaseArchitecture, ABC)
+        assert issubclass(BaseModel, ABC)
     
     def test_cannot_instantiate_directly(self):
         with pytest.raises(TypeError):
-            BaseArchitecture()
+            BaseModel()
     
     def test_config_initialization(self):
         # Create a concrete implementation
-        class ConcreteModel(BaseArchitecture):
+        class ConcreteModel(BaseModel):
             @property
             def ml_task(self):
                 return MLTask.CLASSIFICATION
