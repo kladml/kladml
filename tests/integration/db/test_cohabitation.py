@@ -4,9 +4,9 @@ import sqlite3
 import mlflow
 import tempfile
 import os
-from pathlib import Path
 from kladml.db import Project, init_db, session_scope
 import kladml.db.session as db_session
+from kladml.config.settings import settings
 
 # Use a real file for cohabitation test (mlflow needs a file uri or server)
 @pytest.fixture
@@ -15,8 +15,8 @@ def shared_db():
         db_path = f.name
     
     # Configure KladML to use this DB
-    original_env = os.environ.get("KLADML_DB_PATH")
-    os.environ["KLADML_DB_PATH"] = db_path
+    original_url = settings.database_url
+    settings.database_url = f"sqlite:///{db_path}"
     
     # Reset internal engine to pick up new path
     db_session._engine = None
@@ -27,10 +27,7 @@ def shared_db():
     yield db_path
     
     # Cleanup
-    if original_env:
-        os.environ["KLADML_DB_PATH"] = original_env
-    else:
-        del os.environ["KLADML_DB_PATH"]
+    settings.database_url = original_url
         
     db_session._engine = None
     if os.path.exists(db_path):

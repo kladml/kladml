@@ -1,9 +1,7 @@
 
 import pytest
 import torch
-import numpy as np
 import pandas as pd
-import os
 from kladml.models.timeseries.transformer.canbus.dataset import CanBusDataset
 from kladml.models.timeseries.transformer.canbus.architecture import CanBusTransformer
 from kladml.models.timeseries.transformer.canbus.model import CanBusModel

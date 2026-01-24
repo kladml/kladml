@@ -1,3 +1,4 @@
+
 """
 Unit tests for LocalTracker.
 """
@@ -5,6 +6,7 @@ Unit tests for LocalTracker.
 import pytest
 import shutil
 import tempfile
+import os
 from pathlib import Path
 from kladml.backends.local_tracker import LocalTracker
 from kladml.config.settings import settings
@@ -94,3 +96,30 @@ def test_search_runs(tracker):
     losses = [r["metrics"]["loss"] for r in runs]
     assert 0.5 in losses
     assert 0.3 in losses
+
+def test_log_artifact(tracker):
+    """Test logging a local artifact."""
+    tracker.create_experiment("artifact-exp")
+    tracker.start_run("artifact-exp")
+    
+    # Create dummy artifact
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write("test content")
+        f_path = f.name
+        
+    try:
+        tracker.log_artifact(f_path, "my_artifacts")
+        # No exception implies success
+    finally:
+        os.unlink(f_path)
+        tracker.end_run()
+
+def test_log_model(tracker):
+    """Test logging a model (pickle)."""
+    tracker.create_experiment("model-exp")
+    tracker.start_run("model-exp")
+    
+    model = {"my": "model"}
+    tracker.log_model(model, "model_dir")
+    
+    tracker.end_run()

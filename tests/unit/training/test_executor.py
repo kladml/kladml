@@ -3,12 +3,7 @@ Unit tests for LocalTrainingExecutor.
 """
 
 import pytest
-import shutil
-import tempfile
 import logging
-from typing import Dict, Any, Optional
-from pathlib import Path
-from unittest.mock import MagicMock, ANY
 
 from kladml.training.executor import LocalTrainingExecutor
 from kladml.models.base import BaseModel

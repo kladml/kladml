@@ -9,7 +9,6 @@ from kladml import (
     BaseModel,
     BasePreprocessor,
     TimeSeriesModel,
-    ClassificationModel,
     MLTask,
 )
 

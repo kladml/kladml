@@ -2,7 +2,6 @@
 Tests for KladML Interfaces
 """
 
-import pytest
 from abc import ABC
 
 from kladml.interfaces import (

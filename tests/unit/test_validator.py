@@ -6,11 +6,9 @@ import pytest
 import tempfile
 import zipfile
 import os
-from pathlib import Path
 
 from kladml.validator import (
     KladManifestParser,
-    PackageValidator,
     ValidationResult,
     PackageType,
     validate_package,

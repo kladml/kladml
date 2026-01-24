@@ -1,6 +1,4 @@
 
-import pytest
-from unittest.mock import MagicMock
 from kladml.data.datamodule import BaseDataModule
 
 class ConcreteDataModule(BaseDataModule):

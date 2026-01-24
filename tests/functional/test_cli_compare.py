@@ -7,7 +7,7 @@ import tempfile
 import os
 import shutil
 from pathlib import Path
-from kladml.db.session import reset_db, init_db
+from kladml.db.session import init_db
 from kladml.config.settings import settings
 
 @pytest.fixture
