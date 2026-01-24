@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from typing import Dict, Any, Optional
-from kladml.base import BaseArchitecture
+from kladml.models.base import BaseModel
 from kladml.tasks import MLTask
 
-class ClassificationModel(BaseArchitecture):
+class ClassificationModel(BaseModel):
     """
     Base class for Classification models.
     Supports Image, Text, and Tabular classification.

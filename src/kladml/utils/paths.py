@@ -17,7 +17,7 @@ from typing import Union
 DATA_DIR = "data"
 DATASETS_DIR = "datasets"
 PREPROCESSORS_DIR = "preprocessors"
-MODELS_DIR = "models"
+REGISTRY_DIR = "registry"
 PROJECTS_DIR = "projects"
 
 def get_root_data_path() -> Path:
@@ -65,7 +65,7 @@ def ensure_data_structure():
     
     (root / DATASETS_DIR).mkdir(parents=True, exist_ok=True)
     (root / PREPROCESSORS_DIR).mkdir(parents=True, exist_ok=True)
-    (root / MODELS_DIR).mkdir(parents=True, exist_ok=True)
+    (root / REGISTRY_DIR).mkdir(parents=True, exist_ok=True)
     (root / PROJECTS_DIR).mkdir(parents=True, exist_ok=True)
     
     return root

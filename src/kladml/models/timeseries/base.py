@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from typing import Dict, Any, Optional
-from kladml.base import BaseArchitecture
+from kladml.models.base import BaseModel
 from kladml.tasks import MLTask
 
-class TimeSeriesModel(BaseArchitecture):
+class TimeSeriesModel(BaseModel):
     """
     Base class for Time Series Forecasting models.
     """

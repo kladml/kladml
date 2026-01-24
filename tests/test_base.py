@@ -4,10 +4,11 @@ Tests for KladML SDK base classes.
 
 import pytest
 import numpy as np
-from kladml.base import BaseArchitecture, BasePreprocessor
+from kladml.models.base import BaseModel
+from kladml.data.preprocessor import BasePreprocessor
 
 
-class DummyArchitecture(BaseArchitecture):
+class DummyModel(BaseModel):
     """Concrete implementation for testing."""
     
     @property
@@ -62,24 +63,24 @@ class DummyPreprocessor(BasePreprocessor):
         pass
 
 
-class TestBaseArchitecture:
-    """Test BaseArchitecture interface."""
+class TestBaseModel:
+    """Test BaseModel interface."""
     
     def test_init_with_config(self):
         """Test initialization with config."""
         config = {"hidden_size": 256}
-        model = DummyArchitecture(config=config)
+        model = DummyModel(config=config)
         assert model.config == config
         assert model.is_trained is False
     
     def test_init_without_config(self):
         """Test initialization without config."""
-        model = DummyArchitecture()
+        model = DummyModel()
         assert model.config == {}
     
     def test_fit_sets_fitted_flag(self):
         """Test that fit sets is_fitted."""
-        model = DummyArchitecture()
+        model = DummyModel()
         X = np.array([[1, 2], [3, 4]])
         y = np.array([0, 1])
         model.fit(X, y)
@@ -87,7 +88,7 @@ class TestBaseArchitecture:
     
     def test_predict_after_fit(self):
         """Test predict returns correct shape."""
-        model = DummyArchitecture()
+        model = DummyModel()
         X = np.array([[1, 2], [3, 4], [5, 6]])
         y = np.array([0, 1, 2])
         model.fit(X, y)
@@ -97,7 +98,7 @@ class TestBaseArchitecture:
     def test_get_params(self):
         """Test get_params returns config copy."""
         config = {"hidden_size": 256}
-        model = DummyArchitecture(config=config)
+        model = DummyModel(config=config)
         params = model.get_params()
         assert params == config
         # Verify it's a copy
@@ -106,7 +107,7 @@ class TestBaseArchitecture:
     
     def test_set_params(self):
         """Test set_params updates config."""
-        model = DummyArchitecture()
+        model = DummyModel()
         result = model.set_params(hidden_size=256, dropout=0.1)
         assert model.config["hidden_size"] == 256
         assert model.config["dropout"] == 0.1
@@ -114,7 +115,7 @@ class TestBaseArchitecture:
     
     def test_api_version(self):
         """Test API version is set."""
-        assert DummyArchitecture.API_VERSION == 1
+        assert DummyModel.API_VERSION == 1
 
 
 class TestBasePreprocessor:
