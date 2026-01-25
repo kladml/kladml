@@ -55,7 +55,7 @@ pip install "kladml[vision]"
 ```bash
 kladml init
 ```
-Creates the standard folder structure (`data/`, `registry/`, `projects/`).
+Creates the standard folder structure (`data/configs/`, `data/projects/`, `data/datasets/`).
 
 ### 2. Interactive Management (TUI)
 ```bash
@@ -141,7 +141,7 @@ training:
   device: auto  # auto | cpu | cuda | mps
 
 storage:
-  artifacts_dir: ./artifacts
+  artifacts_dir: ./data
 ```
 
 Or use environment variables:
