@@ -40,14 +40,14 @@ class ClassificationEvaluator(BaseEvaluator):
              try:
                 return torch.jit.load(str(self.model_path))
              except:
-                return torch.load(self.model_path)
+                return torch.load(self.model_path, weights_only=False)
         return None
 
     def load_data(self) -> Any:
          # Placeholder: In a real scenario, this loads a DataLoader
          # For this implementation, we assume 'data_path' might point to a .pt file with (X, y)
          if self.data_path.suffix == '.pt':
-             return torch.load(self.data_path)
+             return torch.load(self.data_path, weights_only=False)
          return None
 
     def inference(self, model: Any, data: Any) -> tuple[torch.Tensor, torch.Tensor]:
@@ -65,6 +65,23 @@ class ClassificationEvaluator(BaseEvaluator):
             return preds, y
         raise  NotImplementedError("Complex data loading not yet implemented in baseline evaluator")
 
+    def _get_labels_and_probs(self, predictions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Convert predictions (logits/probs) to labels and 1D probs (binary)."""
+        if not predictions.is_floating_point():
+            return predictions, predictions
+
+        if self.task_type == "binary" and predictions.ndim == 2 and predictions.shape[1] == 2:
+             # Case: (N, 2)
+             preds_labels = predictions.argmax(dim=1)
+             probs_pos = predictions[:, 1]
+             return preds_labels, probs_pos
+        elif self.num_classes > 2:
+             # Multiclass
+             return predictions.argmax(dim=1), predictions
+        else:
+             # Binary 1D
+             return (predictions > 0.5).long(), predictions
+
     def compute_metrics(self, predictions: torch.Tensor, targets: torch.Tensor) -> dict[str, float]:
         """Compute metrics using torchmetrics."""
         # Ensure primitive types
@@ -73,11 +90,7 @@ class ClassificationEvaluator(BaseEvaluator):
         if not isinstance(targets, torch.Tensor):
             targets = torch.tensor(targets)
 
-        # If predictions are logits/probs, get labels for some metrics
-        if predictions.is_floating_point():
-             preds_labels = predictions.argmax(dim=1) if self.num_classes > 2 else (predictions > 0.5).long()
-        else:
-            preds_labels = predictions
+        preds_labels, predictions_processed = self._get_labels_and_probs(predictions)
 
         results = {
             "accuracy": float(self.acc(preds_labels, targets)),
@@ -86,8 +99,10 @@ class ClassificationEvaluator(BaseEvaluator):
             "f1": float(self.f1(preds_labels, targets)),
         }
         
-        if self.auroc and predictions.is_floating_point():
-             results["auroc"] = float(self.auroc(predictions, targets))
+        if self.auroc and predictions_processed.is_floating_point():
+             # If binary, AUROC needs 1D probs of positive class
+             # If multiclass, it assumes probs (N, C)
+             results["auroc"] = float(self.auroc(predictions_processed, targets))
              
         return results
 
@@ -99,10 +114,7 @@ class ClassificationEvaluator(BaseEvaluator):
         if not isinstance(targets, torch.Tensor):
             targets = torch.tensor(targets)
 
-        if predictions.is_floating_point():
-             preds_labels = predictions.argmax(dim=1) if self.num_classes > 2 else (predictions > 0.5).long()
-        else:
-            preds_labels = predictions
+        preds_labels, _ = self._get_labels_and_probs(predictions)
             
         # 1. Confusion Matrix
         cm = self.confmat(preds_labels, targets).cpu().numpy()
