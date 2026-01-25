@@ -103,7 +103,7 @@ __pycache__/
 *.parquet
 *.h5
 
-# Examples (volant scripts to be integrated into CLI)
 examples/
-private_docs/
-private_docs/
+docss/
+.agent
+.ruff_cache

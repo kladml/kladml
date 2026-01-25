@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Evaluator System:** Modular evaluation with `ClassificationEvaluator` and `RegressionEvaluator`.
+- **Dependencies:** Added `torchmetrics` and `matplotlib` for evaluation and plotting.
+- **CLI:** New `kladml eval` command.
+
 ## [0.7.0] - 2026-01-24
 
 ### Added
@@ -15,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Dependencies:** Dropped support for Python 3.9 (Minimum is now 3.10).
+
 - **Trainer:** `UniversalTrainer` now accepts typed config objects.
 - **Testing:** Reorganized test suite into `unit/{models,training,cli}` structure.
 
