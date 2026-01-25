@@ -31,7 +31,8 @@ console = Console()
 
 # Import subcommands
 from kladml.cli import run, family
-from kladml.cli import projects, experiments, train, data, registry, export, evaluate
+from kladml.cli import projects, experiments, registry, export, evaluate, tune
+from kladml.cli.commands import train, data
 from kladml.cli.compare import compare_runs
 
 # Register subcommands
@@ -45,6 +46,7 @@ app.add_typer(data.app, name="data", help="Inspect and analyze datasets")
 # New Commands (v0.6.0)
 app.add_typer(registry.app, name="registry", help="Manage artifact registry")
 app.add_typer(export.app, name="export", help="Export models (ONNX, TorchScript)")
+app.add_typer(tune.app, name="tune", help="Hyperparameter Tuning (Optuna)")
 
 app.add_typer(evaluate.app, name="eval", help="Evaluate trained models")
 
