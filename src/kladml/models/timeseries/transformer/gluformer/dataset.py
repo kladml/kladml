@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 import joblib
+import pandas as pd
 from torch.utils.data import Dataset
 
 class GluformerDataset(Dataset):
@@ -23,7 +24,7 @@ class GluformerDataset(Dataset):
     """
     def __init__(
         self, 
-        pkl_path: str, 
+        pkl_path: str | list | dict, 
         input_chunk_length=60, 
         output_chunk_length=12, 
         label_len=48, 
@@ -32,8 +33,13 @@ class GluformerDataset(Dataset):
         c_in=1
     ):
         super().__init__()
-        print(f"[GluformerDataset] Loading {pkl_path}...")
-        raw_data = joblib.load(pkl_path)
+        
+        if isinstance(pkl_path, (list, dict, np.ndarray)):
+            print(f"[GluformerDataset] Using in-memory data ({type(pkl_path)})")
+            raw_data = pkl_path
+        else:
+            print(f"[GluformerDataset] Loading {pkl_path}...")
+            raw_data = joblib.load(pkl_path)
         
         self.c_in = c_in
         self.data_list = self._convert_data(raw_data)
@@ -54,7 +60,27 @@ class GluformerDataset(Dataset):
     
     def _convert_data(self, raw_data) -> list:
         """Convert to list of {'glucose': arr, 'insulin': arr}."""
-        if isinstance(raw_data, list) and len(raw_data) > 0:
+        if isinstance(raw_data, pd.DataFrame):
+            print(f"[GluformerDataset] Format: DataFrame ({len(raw_data)} rows)")
+            # Convert single DF to list of 1 dict (treating it as one long series)
+            # OR split by ID if multi-series?
+            # For simplicity in this context (and matching DataModule behavior which passes one DF per split),
+            # we treat the whole DF as one series.
+            
+            item = {}
+            if 'glucose' in raw_data.columns:
+                item['glucose'] = raw_data['glucose'].values.astype(np.float32)
+            else:
+                raise ValueError("DataFrame must contain 'glucose' column")
+                
+            if 'insulin' in raw_data.columns:
+                item['insulin'] = raw_data['insulin'].values.astype(np.float32)
+            else:
+                 item['insulin'] = np.zeros_like(item['glucose'])
+            
+            return [item]
+
+        elif isinstance(raw_data, list) and len(raw_data) > 0:
             if isinstance(raw_data[0], dict):
                 print(f"[GluformerDataset] Format: {len(raw_data)} dicts")
                 return raw_data
@@ -68,7 +94,10 @@ class GluformerDataset(Dataset):
                 return [{'glucose': np.array(x).flatten().astype(np.float32), 
                          'insulin': np.zeros_like(np.array(x), dtype=np.float32)} for x in raw_data]
         else:
-            raise ValueError(f"Unsupported format: {type(raw_data)}")
+             # Handle empty list or other types
+             if isinstance(raw_data, list) and len(raw_data) == 0:
+                 return []
+             raise ValueError(f"Unsupported format: {type(raw_data)}")
 
     def _prepare_windows(self):
         stride = 1

@@ -130,7 +130,11 @@ class UniversalTrainer:
                     self.callbacks.on_epoch_begin(epoch)
                 
                 # --- TRAIN ---
-                model.train()
+                if isinstance(model, torch.nn.Module):
+                    model.train()
+                elif hasattr(model, "model") and isinstance(model.model, torch.nn.Module):
+                    model.model.train()
+                # Else assume model handles state or is stateless wrapper
                 train_loss_acc = 0.0
                 num_batches = 0
                 
@@ -198,7 +202,11 @@ class UniversalTrainer:
                         self.accelerator.backward(loss)
                         
                         if self.accelerator.sync_gradients:
-                            self.accelerator.clip_grad_norm_(model.parameters(), self.config.gradient_clipping)
+                            # Handle wrapper parameter access
+                            params = model.parameters() if hasattr(model, "parameters") else (
+                                model.model.parameters() if hasattr(model, "model") else []
+                            )
+                            self.accelerator.clip_grad_norm_(params, self.config.gradient_clipping)
                         
                         optimizer.step()
                         optimizer.zero_grad()
@@ -245,7 +253,10 @@ class UniversalTrainer:
         return metrics
 
     def _validate(self, model: torch.nn.Module, dataloader: Any) -> dict[str, float]:
-        model.eval()
+        if isinstance(model, torch.nn.Module):
+            model.eval()
+        elif hasattr(model, "model") and isinstance(model.model, torch.nn.Module):
+            model.model.eval()
         val_loss_acc = 0.0
         num_batches = 0
         
@@ -255,7 +266,12 @@ class UniversalTrainer:
                 
                 # Validation Step
                 # Handle DDP wrapper
-                unwrapped = self.accelerator.unwrap_model(model)
+                # Validation Step
+                # Handle DDP wrapper
+                if isinstance(model, torch.nn.Module):
+                    unwrapped = self.accelerator.unwrap_model(model)
+                else:
+                    unwrapped = model
                 # Actually, running validation on DDP model is fine/better for sync BN?
                 # But `validation_step` access might be tricky.
                 # Just assume call works via getattr or module.
