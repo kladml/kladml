@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.12.0] - 2026-01-25
+## [0.13.0] - 2026-01-26
+### Added
+- **Gluformer Integration:** Full lifecycle support (Train, Predict, Export) via `UniversalTrainer`.
+- **Integration Tests:** New test suite `tests/integration/` validating the complete pipeline (Model Lifecycle & Data Pipeline).
+- **Data Pipeline:** Verified and hardened PKL->HDF5/Parquet pipeline with high test coverage (>80%).
+- **CLI:** Enhanced `kladml config create` for smart dataset-aware configuration.
+
+### Changed
+- **Registry:** Renamed `kladml registry register` to `kladml registry add`.
+- **Codebase Cleanliness:** Removed legacy `src/kladml/data/utils/` and moved scripts to `scripts/`.
+- **Trainer:** Improved `UniversalTrainer` to support wrapper models (like Gluformer) natively.
+- **Coverage:** Reached >80% coverage on Core, CLI, and Data modules.
+
+## [0.12.1] - 2026-01-25
+### Added
+- **Smart Config Generator:** New `kladml config create` command that inspects datasets (Polars) and generates optimized initial configurations.
+- **Model Defaults:** `BaseModel.default_config` interface for architectural defaults.
+
+
 ### Architecture
 - **Operation 100%:** Achieved high test coverage on Core Logic (>80%) and Utilities (96%).
 - **CLI Refactor:** Split monolithic `train.py` and `data.py` into modular command packages.

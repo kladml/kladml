@@ -365,6 +365,33 @@ kladml data convert -i train.pkl -o train.parquet --format parquet
 
 ---
 
+## Configuration Management
+
+### `kladml config create`
+
+Generate a 'smart' configuration file for a model using dataset heuristics.
+
+```bash
+kladml config create [OPTIONS]
+```
+
+**Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--model`, `-m` | Yes | Model name (e.g. `gluformer`) |
+| `--data`, `-d` | No | Path to training data for auto-tuning |
+| `--output`, `-o` | No | Output path (default: `config.yaml`) |
+
+**Example:**
+
+```bash
+# Generate config tailored to your dataset
+kladml config create --model gluformer --data data/train.parquet
+```
+
+---
+
 ## Environment Variables
 
 
@@ -460,12 +487,12 @@ kladml compare --runs run_001,run_002,run_003 --metric accuracy --output compari
 
 ## Component Registration
 
-### `kladml registry register`
+### `kladml registry add`
 
 Register custom components (architectures, preprocessors, evaluators).
 
 ```bash
-kladml registry register [OPTIONS]
+kladml registry add [OPTIONS]
 ```
 
 **Component Types:**
@@ -489,10 +516,10 @@ kladml registry register [OPTIONS]
 
 ```bash
 # Register a custom architecture
-kladml registry register --name MyTransformer --path src/models/my_transformer.py --type model --tag experimental
+kladml registry add --name MyTransformer --path src/models/my_transformer.py --type model --tag experimental
 
 # Register a custom preprocessor
-kladml registry register --name MyScaler --path src/data/scaler.pkl --type preprocessor
+kladml registry add --name MyScaler --path src/data/scaler.pkl --type preprocessor
 ```
 
 ### `kladml registry list`
