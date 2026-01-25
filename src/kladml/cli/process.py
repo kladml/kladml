@@ -20,7 +20,7 @@ def run_pipeline(
 
     Arguments:
         pipeline_path: Path to YAML config (e.g. config/processing.yaml)
-        input_path: Source data (e.g. data/raw/logs or data.parquet)
+        input_path: Source data (e.g. data/datasets/canbus/ or data.parquet)
         output_path: Optional override for saving result
     """
     console.print(f"[bold blue]🚀 Starting Pipeline:[/bold blue] {pipeline_path}")
