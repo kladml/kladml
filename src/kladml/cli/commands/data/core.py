@@ -1,8 +1,3 @@
-"""
-KladML CLI - Dataset Inspector
-
-CLI command to analyze and classify .pkl dataset files.
-"""
 
 import typer
 from pathlib import Path
@@ -10,150 +5,15 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
+from kladml.cli.commands.data.utils import format_size
+from kladml.cli.commands.data.inspect import analyze_pkl, analyze_parquet
+from kladml.cli.process import run_pipeline
+
 app = typer.Typer(help="Inspect and analyze datasets")
 console = Console()
 
-
-def _format_size(size_bytes: int) -> str:
-    """Format bytes to human readable."""
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if size_bytes < 1024:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024
-    return f"{size_bytes:.1f} TB"
-
-
-def _analyze_pkl(path: Path) -> dict:
-    """Analyze a .pkl file and return metadata."""
-    import joblib
-    import numpy as np
-    
-    data = joblib.load(path)
-    
-    result = {
-        "path": str(path),
-        "size": path.stat().st_size,
-        "type": type(data).__name__,
-    }
-    
-    # Analyze based on type
-    if isinstance(data, list):
-        result["num_items"] = len(data)
-        
-        if len(data) > 0:
-            first = data[0]
-            result["item_type"] = type(first).__name__
-            
-            if isinstance(first, np.ndarray):
-                # List of arrays (time series)
-                lengths = [len(arr) for arr in data]
-                result["series_lengths"] = {
-                    "min": min(lengths),
-                    "max": max(lengths),
-                    "mean": np.mean(lengths),
-                    "total_samples": sum(lengths),
-                }
-                
-                # Sample statistics
-                all_values = np.concatenate([arr.flatten() for arr in data[:10]])
-                result["sample_stats"] = {
-                    "min": float(np.min(all_values)),
-                    "max": float(np.max(all_values)),
-                    "mean": float(np.mean(all_values)),
-                    "std": float(np.std(all_values)),
-                }
-                result["classification"] = "timeseries_list"
-                
-            elif hasattr(first, 'shape'):
-                # Pandas DataFrame or similar
-                result["item_shape"] = str(first.shape) if hasattr(first, 'shape') else "N/A"
-                if hasattr(first, 'columns'):
-                    result["columns"] = list(first.columns)[:10]
-                result["classification"] = "dataframe_list"
-    
-    elif isinstance(data, np.ndarray):
-        result["shape"] = data.shape
-        result["dtype"] = str(data.dtype)
-        result["sample_stats"] = {
-            "min": float(np.min(data)),
-            "max": float(np.max(data)),
-            "mean": float(np.mean(data)),
-            "std": float(np.std(data)),
-        }
-        result["classification"] = "numpy_array"
-    
-    elif isinstance(data, dict):
-        result["keys"] = list(data.keys())[:20]
-        result["num_keys"] = len(data)
-        
-        # Check if it's a scaler
-        if 'mean_' in data or 'scale_' in data or 'mean' in data:
-            result["classification"] = "scaler_coefficients"
-            if 'mean_' in data:
-                result["scaler_mean"] = float(data['mean_'][0]) if hasattr(data['mean_'], '__getitem__') else float(data['mean_'])
-            if 'scale_' in data:
-                result["scaler_scale"] = float(data['scale_'][0]) if hasattr(data['scale_'], '__getitem__') else float(data['scale_'])
-        else:
-            result["classification"] = "dictionary"
-    
-    elif hasattr(data, 'mean_') and hasattr(data, 'scale_'):
-        # sklearn scaler object
-        result["classification"] = "sklearn_scaler"
-        result["scaler_mean"] = float(data.mean_[0])
-        result["scaler_scale"] = float(data.scale_[0])
-    
-    else:
-        result["classification"] = "unknown"
-        if hasattr(data, 'shape'):
-            result["shape"] = data.shape
-    
-    return result
-
-
-def _analyze_parquet(path: Path) -> dict:
-    """Analyze a .parquet file using Polars."""
-    import polars as pl
-    
-    try:
-        # Lazy scan for speed
-        lf = pl.scan_parquet(path)
-        schema = lf.schema
-        
-        # Determine strictness via file info or just fetch schema
-        # For stats we need to collect a bit
-        
-        # Quick stats?
-        # Just getting length and first row
-        df_head = lf.limit(5).collect()
-        total_rows = lf.select(pl.count()).collect().item()
-        
-        result = {
-            "path": str(path),
-            "size": path.stat().st_size,
-            "type": "Parquet (Polars)",
-            "classification": "tabular",
-            "num_items": total_rows,
-            "columns": list(schema.keys()),
-            "schema": {k: str(v) for k, v in schema.items()}
-        }
-        
-        # Check if columns are Lists (Timeseries)
-        first_row = df_head.row(0) if len(df_head) > 0 else None
-        if first_row:
-             # Just heuristic
-             pass
-             
-        return result
-    except Exception as e:
-        return {
-            "path": str(path),
-            "size": path.stat().st_size,
-            "type": "Parquet (Error)",
-            "classification": "corrupt",
-            "error": str(e)
-        }
-
-
+# Register pipeline runner
+app.command("process", help="Run a data processing pipeline defined in YAML.")(run_pipeline)
 
 @app.command("inspect")
 def inspect_dataset(
@@ -162,12 +22,7 @@ def inspect_dataset(
 ) -> None:
     """
     Inspect a .pkl dataset file and show its structure.
-    
-    Example:
-        kladml data inspect ./data/datasets/glucose/cgm_um_train.pkl
-        kladml data inspect ./data/datasets/glucose/  # Inspect all in directory
     """
-    
     target = Path(path)
     
     if not target.exists():
@@ -188,10 +43,9 @@ def inspect_dataset(
     for file_path in sorted(files):
         try:
             if file_path.suffix == ".parquet":
-                info = _analyze_parquet(file_path)
+                info = analyze_parquet(file_path)
             else:
-                info = _analyze_pkl(file_path)
-            
+                info = analyze_pkl(file_path)
             
             # Classification badge
             class_colors = {
@@ -202,6 +56,8 @@ def inspect_dataset(
                 "sklearn_scaler": "magenta",
                 "dictionary": "yellow",
                 "unknown": "red",
+                "tabular": "cyan",
+                "corrupt": "red"
             }
             classification = info.get("classification", "unknown")
             color = class_colors.get(classification, "white")
@@ -209,7 +65,7 @@ def inspect_dataset(
             console.print(Panel(
                 f"[bold]{file_path.name}[/bold]\n"
                 f"Type: [{color}]{classification}[/{color}]\n"
-                f"Size: {_format_size(info['size'])}\n"
+                f"Size: {format_size(info['size'])}\n"
                 f"Python Type: {info['type']}",
                 title=f"📁 {file_path.stem}",
                 border_style=color,
@@ -244,6 +100,8 @@ def inspect_dataset(
                 table.add_row("Keys", ", ".join(str(k) for k in info["keys"][:5]))
             if "columns" in info:
                 table.add_row("Columns", ", ".join(str(c) for c in info["columns"][:5]))
+            if "error" in info:
+                table.add_row("Error", f"[red]{info['error']}[/red]")
             
             console.print(table)
             console.print()
@@ -258,9 +116,6 @@ def summary_directory(
 ) -> None:
     """
     Show a summary table of all datasets in a directory.
-    
-    Example:
-        kladml data summary ./data/datasets/glucose/
     """
     target = Path(path)
     
@@ -268,9 +123,9 @@ def summary_directory(
         console.print(f"[bold red]❌ Not a directory:[/bold red] {path}")
         raise typer.Exit(code=1)
     
-    files = list(target.glob("*.pkl"))
+    files = list(target.glob("*.pkl")) + list(target.glob("*.parquet"))
     if not files:
-        console.print(f"[yellow]No .pkl files found in {path}[/yellow]")
+        console.print(f"[yellow]No .pkl or .parquet files found in {path}[/yellow]")
         raise typer.Exit(code=0)
     
     table = Table(title=f"📊 Datasets in {path}", show_header=True, header_style="bold blue")
@@ -282,7 +137,10 @@ def summary_directory(
     
     for file_path in sorted(files):
         try:
-            info = _analyze_pkl(file_path)
+            if file_path.suffix == ".parquet":
+                info = analyze_parquet(file_path)
+            else:
+                info = analyze_pkl(file_path)
             
             items = ""
             if "num_items" in info:
@@ -302,7 +160,7 @@ def summary_directory(
             table.add_row(
                 file_path.name,
                 info.get("classification", "unknown"),
-                _format_size(info["size"]),
+                format_size(info["size"]),
                 items,
                 value_range,
             )
@@ -321,9 +179,6 @@ def convert_dataset(
 ) -> None:
     """
     Convert a dataset from PKL to HDF5 format.
-    
-    Example:
-        kladml data convert -i data.pkl -o data.h5
     """
     from kladml.data.converter import convert_pkl_to_hdf5
     
@@ -331,9 +186,6 @@ def convert_dataset(
         from kladml.data.converter import convert_pkl_to_parquet
         # Default ZSTD for parquet if user left gzip default (which is HDF5 default)
         comp = "zstd" if compression == "gzip" else compression
-        if args_compression_was_none_flag: # Hard to detect via Typer defaulting logic without inspecting ctx value
-             comp = "zstd" 
-        # Simpler: just pass compression. Polars handles gzip too.
         
         try:
             convert_pkl_to_parquet(input_path, output_path, compression=compression)
@@ -357,15 +209,8 @@ def convert_dataset(
     console.print(f"Output: {output_path}")
     
     try:
-        stats = convert_pkl_to_hdf5(input_path, output_path, compression=compression)
+        convert_pkl_to_hdf5(input_path, output_path, compression=compression)
         console.print("[green]✓ Conversion successful![/green]")
     except Exception as e:
         console.print(f"[red]Conversion failed:[/red] {e}")
         raise typer.Exit(code=1)
-
-from kladml.cli.process import run_pipeline
-app.command("process", help="Run a data processing pipeline defined in YAML. Example: kladml data process -i data/datasets/canbus/ -p pipe.yaml")(run_pipeline)
-
-
-if __name__ == "__main__":
-    app()
