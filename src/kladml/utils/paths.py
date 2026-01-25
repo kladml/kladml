@@ -17,6 +17,7 @@ DATASETS_DIR = "datasets"
 PREPROCESSORS_DIR = "preprocessors"
 REGISTRY_DIR = "registry"
 PROJECTS_DIR = "projects"
+DB_DIR = "db"
 
 def get_root_data_path() -> Path:
     """Get the root data directory path (relative to CWD)."""
@@ -65,5 +66,6 @@ def ensure_data_structure():
     (root / PREPROCESSORS_DIR).mkdir(parents=True, exist_ok=True)
     (root / REGISTRY_DIR).mkdir(parents=True, exist_ok=True)
     (root / PROJECTS_DIR).mkdir(parents=True, exist_ok=True)
+    (root / DB_DIR).mkdir(parents=True, exist_ok=True)
     
     return root

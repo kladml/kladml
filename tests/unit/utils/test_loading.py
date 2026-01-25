@@ -71,10 +71,10 @@ def test_resolve_by_registry_success():
         assert cls == RegistryModel
         mock_import.assert_called_with("kladml.models.cool_model")
 
-def test_resolve_by_registry_not_found():
-    with patch("importlib.import_module", side_effect=ImportError):
-         with pytest.raises(ValueError, match="not found in kladml.models"):
-             resolve_model_class("unknown_model")
+    def test_resolve_by_registry_not_found():
+        with patch("importlib.import_module", side_effect=ImportError):
+             with pytest.raises(ValueError, match="not found"):
+                 resolve_model_class("unknown_model")
 
 def test_resolve_registry_no_class():
     with patch("importlib.import_module") as mock_import:

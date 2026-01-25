@@ -89,4 +89,5 @@ class TestBaseModelExtended:
         )
         
         # Verify attributes set
-        assert hasattr(model, "_callbacks_list")
+        assert hasattr(model, "callbacks")
+        assert len(model.callbacks) > 0
