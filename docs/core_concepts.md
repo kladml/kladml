@@ -18,9 +18,9 @@ Workspace
 └── Configs (Configuration files)
 ```
 
-- **Workspace**: Root of your local environment (`.kladml/` + `data/`).
+- **Workspace**: Root of your local environment (`data/`).
 - **Project**: High-level container (e.g., "CustomerChurn").
-- **Family**: Grouping of related experiments (e.g., "DeepLearning").
+- **Family**: Grouping of related experiments (e.g., "glucose_forecasting").
 - **Dataset**: First-class entity, synced to DB.
 - **Run**: Individual training execution.
 
