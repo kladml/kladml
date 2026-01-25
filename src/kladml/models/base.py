@@ -29,6 +29,21 @@ class BaseModel(ABC):
         """
         self.config = config or {}
         self._is_trained = False
+        
+        from kladml.training.callbacks.base import CallbackList
+        self.callbacks = CallbackList([])
+
+    def on_train_begin(self, logs=None):
+        """Called at start of training."""
+        self.callbacks.on_train_begin(logs)
+
+    def on_train_end(self, logs=None):
+        """Called at end of training."""
+        self.callbacks.on_train_end(logs)
+
+    def on_epoch_end(self, epoch, logs=None):
+        """Called at end of each epoch."""
+        self.callbacks.on_epoch_end(epoch, logs)
     
     @property
     @abstractmethod
@@ -248,4 +263,17 @@ class BaseModel(ABC):
         self._metrics_callback = MetricsCallback()
         callbacks.append(self._metrics_callback)
         
-        self._callbacks_list = CallbackList(callbacks)
+        # 5. Optuna Pruning (Auto-injected if tuning)
+        optuna_trial = self.config.get("optuna_trial")
+        if optuna_trial:
+            try:
+                from kladml.training.callbacks.optuna import OptunaPruningCallback
+                # Monitor val_loss by default, or config override
+                monitor = self.config.get("optuna_monitor", "val_loss")
+                callbacks.append(OptunaPruningCallback(trial=optuna_trial, monitor=monitor))
+                logging.getLogger(__name__).info("Optuna Pruning enabled.")
+            except ImportError:
+                 logging.getLogger(__name__).warning("Optuna trial present but 'optuna' not installed.")
+        
+        # Wrap in CallbackList if desired, or just list
+        self.callbacks = CallbackList(callbacks)
