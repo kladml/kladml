@@ -8,10 +8,51 @@ import typer
 import importlib
 import importlib.util
 import sys
+import os
 from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
+
+def _relaunch_with_accelerate(num_processes: int = 1):
+    """
+    Relaunch the current command using 'accelerate launch'.
+    Removes the --distributed/--num-processes flags to avoid infinite loop.
+    """
+    import sys
+    
+    # 1. Filter out distributed flags
+    new_args = []
+    skip_next = False
+    for arg in sys.argv[1:]:
+        if skip_next:
+            skip_next = False
+            continue
+            
+        if arg in ("--distributed",):
+            continue
+        if arg in ("--num-processes",):
+            skip_next = True # Skip value
+            continue
+            
+        new_args.append(arg)
+
+    # 2. Construct launch command
+    # accelerate launch --num_processes X -m kladml.cli.main ...
+    
+    cmd = [
+        "accelerate", "launch",
+        "--num_processes", str(num_processes),
+        "-m", "kladml.cli.main"
+    ] + new_args
+    
+    console.print(f"[bold yellow]🚀 Relaunching via Accelerate (Distributed: {num_processes} processes)...[/bold yellow]")
+    console.print(f"[dim]Command: {' '.join(cmd)}[/dim]\n")
+    
+    # 3. Replace process
+    os.execvp("accelerate", cmd)
+
+
 
 # NOTE: Heavy imports (db, training, backends) are done inside functions
 # for faster CLI startup time
@@ -118,8 +159,42 @@ def train_single(
     family: str = typer.Option("default", "--family", "-f", help="Family name (default: 'default')"),
     experiment: str = typer.Option(..., "--experiment", "-e", help="Experiment name"),
     config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to YAML config"),
+    distributed: bool = typer.Option(False, "--distributed", help="Run in distributed mode using Accelerate"),
+    num_processes: int = typer.Option(1, "--num-processes", help="Number of processes (GPUs) for distributed mode"),
 ) -> None:
     """Run a single training."""
+    
+    # Handle Distributed Launch
+    if distributed:
+        # 1. MacOS / MPS Check
+        if sys.platform == "darwin":
+            console.print("[bold yellow]⚠️  Distributed training not supported efficiently on macOS (MPS).[/bold yellow]")
+            console.print("[green]Auto-falling back to standard single-process training (Accelerated via MPS).[/green]")
+            distributed = False
+            # Fall through to normal execution
+        
+        else:
+            # 2. Resource Check (CUDA)
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    available_gpus = torch.cuda.device_count()
+                    if num_processes > available_gpus:
+                        console.print(f"[bold red]Error: Requested {num_processes} processes but only {available_gpus} GPUs found.[/bold red]")
+                        raise typer.Exit(code=1)
+                else:
+                    # CPU warning
+                    import multiprocessing
+                    available_cpus = multiprocessing.cpu_count()
+                    if num_processes > available_cpus:
+                        console.print(f"[bold yellow]Warning: Requested {num_processes} processes but only {available_cpus} CPUs found. This will slow down training.[/bold yellow]")
+            except ImportError:
+                pass # Torch not installed? Should be rare
+                
+            # 3. Relaunch
+            _relaunch_with_accelerate(num_processes=num_processes)
+            return # Should never reach here due to execvp
+        
     # Lazy imports for faster CLI startup
     from kladml.training.executor import LocalTrainingExecutor
     from kladml.backends.local_tracker import LocalTracker

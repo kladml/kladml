@@ -20,8 +20,9 @@ class TrainingConfig(BaseModel):
     batch_size: int = Field(default=32, ge=1, description="Batch size for dataloaders")
     
     # Advanced
-    gradient_clip_val: float | None = Field(default=None, ge=0, description="Gradient clipping value")
-    accumulate_grad_batches: int = Field(default=1, ge=1, description="Gradient accumulation steps")
+    mixed_precision: Literal["no", "fp16", "bf16"] = Field(default="no", description="Mixed precision mode")
+    gradient_accumulation_steps: int = Field(default=1, ge=1, description="Number of steps to accumulate gradients")
+    gradient_clipping: float = Field(default=1.0, ge=0.0, description="Max gradient norm for clipping")
     
     default_root_dir: str | None = Field(default=None, description="Default root directory for logs/checkpoints")
 

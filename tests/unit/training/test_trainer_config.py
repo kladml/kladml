@@ -11,7 +11,7 @@ class TestTrainerConfig:
         """Test backward compatibility with explicit arguments."""
         trainer = UniversalTrainer(max_epochs=5, accelerator="cpu")
         assert trainer.max_epochs == 5
-        assert trainer.accelerator == "cpu"
+        assert trainer.config.accelerator == "cpu"
         assert isinstance(trainer.config, TrainingConfig)
 
     def test_init_with_config_object(self):
@@ -19,7 +19,7 @@ class TestTrainerConfig:
         config = TrainingConfig(max_epochs=20, accelerator="gpu")
         trainer = UniversalTrainer(config=config)
         assert trainer.max_epochs == 20
-        assert trainer.accelerator == "gpu"
+        assert trainer.config.accelerator == "gpu"
         assert trainer.config is config
 
     def test_init_with_dict(self):
@@ -27,7 +27,7 @@ class TestTrainerConfig:
         config_dict = {"max_epochs": 15, "accelerator": "mps"}
         trainer = UniversalTrainer(config=config_dict)
         assert trainer.max_epochs == 15
-        assert trainer.accelerator == "mps"
+        assert trainer.config.accelerator == "mps"
         assert isinstance(trainer.config, TrainingConfig)
 
     def test_validation_error(self):

@@ -45,7 +45,7 @@ def test_trainer_initialization():
     """Test that trainer initializes with correct defaults."""
     trainer = UniversalTrainer(max_epochs=5)
     assert trainer.max_epochs == 5
-    assert trainer.devices == "auto"  # Check the config, not the resolved device
+    assert trainer.config.devices == "auto"  # Check the config
 
 def test_trainer_fit_loop(dummy_loaders):
     """Test standard training loop execution."""
