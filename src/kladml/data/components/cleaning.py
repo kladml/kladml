@@ -1,8 +1,11 @@
 
 import polars as pl
 from typing import Any
-from ..pipeline import PipelineComponent
+from ..pipeline import PipelineComponent, register_component
 
+from ..pipeline import PipelineComponent, register_component
+
+@register_component("J1939Cleaner")
 class J1939Cleaner(PipelineComponent):
     """
     Cleans J1939 data by masking error codes (fe, ff bytes) and impossible values.
@@ -41,6 +44,7 @@ class J1939Cleaner(PipelineComponent):
             return df.with_columns(exprs)
         return df
 
+@register_component("TripSegmenter")
 class TripSegmenter(PipelineComponent):
     """
     Identifies trips based on time gaps.
