@@ -50,57 +50,65 @@ class GluformerModel(TransformerModel):
         >>> metrics = model.train(train_data, val_data=val_data)
     """
     
+    @classmethod
+    def default_config(cls) -> dict[str, Any]:
+        """Default Gluformer configuration."""
+        return {
+            "seq_len": 60,
+            "pred_len": 12,
+            "label_len": 48,
+            "d_model": 512,
+            "n_heads": 8,
+            "e_layers": 3,
+            "d_layers": 2,
+            "d_ff": 2048,
+            "dropout": 0.05,
+            "epochs": 100,
+            "batch_size": 64,
+            "learning_rate": 1e-4,
+            "patience": 10,
+            "warmup_epochs": 5,
+            "loss_mode": "nll",
+            "variance_reg": 0.01,
+            "temperature": 1.0,
+            "project_name": "default",
+            "experiment_name": "gluformer",
+        }
+
     def __init__(self, config: Optional[dict[str, Any]] = None):
         """
         Initialize Gluformer model.
         
         Args:
-            config: Configuration dictionary with keys:
-                - project_name: Project name (default: "default")
-                - experiment_name: Experiment name (default: "gluformer")
-                - seq_len: Input sequence length (default: 60)
-                - pred_len: Prediction horizon (default: 12)
-                - label_len: Decoder label length (default: 48)
-                - d_model: Model dimension (default: 512)
-                - n_heads: Attention heads (default: 8)
-                - e_layers: Encoder layers (default: 3)
-                - d_layers: Decoder layers (default: 2)
-                - d_ff: Feedforward dimension (default: 2048)
-                - dropout: Dropout rate (default: 0.05)
-                - epochs: Training epochs (default: 100)
-                - batch_size: Batch size (default: 64)
-                - learning_rate: Learning rate (default: 1e-4)
-                - patience: Early stopping patience (default: 10)
-                - warmup_epochs: MSE warmup epochs (default: 5)
-                - device: Training device (default: "auto")
+            config: Configuration dictionary. 
+                   Defaults are fetched from `default_config()`.
         """
+        # Merge defaults with provided config
+        defaults = self.default_config()
+        if config:
+            defaults.update(config)
+        
         # Initialize Base Transformer (sets d_model, device, etc.)
-        super().__init__(config)
+        super().__init__(defaults)
         
         # Project settings
-        self.project_name = self.config.get("project_name", "default")
-        self.experiment_name = self.config.get("experiment_name", "gluformer")
+        self.project_name = self.config.get("project_name")
+        self.experiment_name = self.config.get("experiment_name")
         
-        # Model architecture specific to Gluformer
-        self.seq_len = self.config.get("seq_len", 60)
-        self.pred_len = self.config.get("pred_len", 12)
-        self.label_len = self.config.get("label_len", 48)
-        
-        # Other params handled by base `TransformerModel`:
-        # d_model, n_heads, e_layers, d_layers, d_ff, dropout
+        # Model architecture
+        self.seq_len = self.config.get("seq_len")
+        self.pred_len = self.config.get("pred_len")
+        self.label_len = self.config.get("label_len")
         
         # Training settings
-        self.epochs = self.config.get("epochs", 100)
-        self.patience = self.config.get("patience", 10)
-        self.warmup_epochs = self.config.get("warmup_epochs", 5)
+        self.epochs = self.config.get("epochs")
+        self.patience = self.config.get("patience")
+        self.warmup_epochs = self.config.get("warmup_epochs")
         
         # Loss configuration
-        # loss_mode: "mse" (pure point prediction) or "nll" (probabilistic with uncertainty)
-        self.loss_mode = self.config.get("loss_mode", "nll")
-        # variance_reg: Regularization to prevent variance collapse (only for nll mode)
-        self.variance_reg = self.config.get("variance_reg", 0.01)
-        # temperature: Post-hoc scaling factor for logvar (< 1 = wider intervals)
-        self.temperature = self.config.get("temperature", 1.0)
+        self.loss_mode = self.config.get("loss_mode")
+        self.variance_reg = self.config.get("variance_reg")
+        self.temperature = self.config.get("temperature")
         
         # Internal state
         self._scaler = None
@@ -241,21 +249,27 @@ class GluformerModel(TransformerModel):
         
         # 2. Setup Callbacks
         run_id = generate_run_id(self.project_name, self.experiment_name)
+        # Base method populates self.callbacks
         self._init_standard_callbacks(run_id, self.project_name, self.experiment_name)
-        callbacks = self._callbacks_list.callbacks
         
-        # Add Checkpoint Callback
+        # Add Checkpoint Callback manually (Base creates manager but doesn't add callback by default??)
+        # Actually, let's verify if we should just depend on Base.
+        # Base _init_standard_callbacks creates self._checkpoint_manager.
+        
         if self._checkpoint_manager:
-            callbacks.append(CheckpointCallback(self._checkpoint_manager))
+             callbacks = self.callbacks
+             # Check if already added (Base might evolve)
+             # Just append it.
+             callbacks.append(CheckpointCallback(self._checkpoint_manager))
         
         # 3. Build Model
-        self._build_model()
+        self.build_model()
         
         # 4. Train
         trainer = UniversalTrainer(
             max_epochs=self.epochs,
-            callbacks=callbacks,
-            accelerator="auto", # Trainer handles MPS/CUDA
+            callbacks=self.callbacks,
+            accelerator=self.device.type, # Respect model config
         )
         
         # Inject epoch state into model for loss function dynamic behavior
@@ -288,6 +302,8 @@ class GluformerModel(TransformerModel):
              # Trainer doesn't auto-load best at end yet, so we trust CheckpointManager saved it
              # But self.model might be the last epoch state.
              pass 
+        
+        self._is_trained = True
              
         return metrics
     
@@ -303,7 +319,7 @@ class GluformerModel(TransformerModel):
         """
         import torch
         
-        if self._model is None:
+        if self.model is None:
             raise RuntimeError("Model not trained. Call train() first.")
         
         # Prepare input
@@ -324,11 +340,8 @@ class GluformerModel(TransformerModel):
         # For backward compatibility, if X is 1D, we pad insulin with 0.
         
         if sequence.ndim == 1:
-            # Add insulin channel (zeros)
-            # [SeqLen, 2] -> Col 0: Glucose, Col 1: Insulin
-            glucose = sequence.reshape(-1, 1)
-            insulin = np.zeros_like(glucose)
-            x_enc_np = np.concatenate([glucose, insulin], axis=1)
+            # Univariate input [SeqLen, 1]
+            x_enc_np = sequence.reshape(-1, 1)
         else:
             x_enc_np = sequence
             
@@ -336,8 +349,8 @@ class GluformerModel(TransformerModel):
         x_id = torch.FloatTensor([0]).unsqueeze(0).to(self.device)
         
         # Decoder input
-        # Zeros for future [1, LabelLen+PredLen, 2]
-        x_dec = torch.zeros(1, self.label_len + self.pred_len, 2).to(self.device)
+        # Zeros for future [1, LabelLen+PredLen, 1]
+        x_dec = torch.zeros(1, self.label_len + self.pred_len, 1).to(self.device)
         # Copy label (start token)
         x_dec[:, :self.label_len, :] = x_enc[:, -self.label_len:, :]
         
@@ -368,18 +381,11 @@ class GluformerModel(TransformerModel):
             "risk_assessment": risk,
             "forecast_horizon_minutes": len(mean) * 5,
         }
-    
+
     def evaluate(self, X_test: Any, y_test: Any = None, **kwargs) -> dict[str, float]:
         """Evaluate model on test data."""
         # Placeholder - implement full evaluation logic
         return {"status": "not_implemented"}
-    
-    def save(self, path: str) -> None:
-        """Save model to checkpoint."""
-        if self._checkpoint_manager:
-            logger.info(f"Model saved via CheckpointManager at: {self._checkpoint_manager.checkpoint_dir}")
-        else:
-            logger.warning("No checkpoint manager - model not saved")
     
     def export_model(self, path: str, format: str = "torchscript", **kwargs) -> None:
         """Export Gluformer to TorchScript for deployment."""
@@ -401,24 +407,3 @@ class GluformerModel(TransformerModel):
         except Exception as e:
             logger.error(f"Deployment export failed: {e}")
             raise
-
-    def load(self, path: str) -> None:
-        """Load model from checkpoint."""
-        import torch
-        
-        self._build_model()
-        
-        checkpoint_path = Path(path)
-        if checkpoint_path.is_dir():
-            # Load from checkpoint directory
-            best_model = checkpoint_path / "best_model.pth"
-            if best_model.exists():
-                checkpoint = torch.load(best_model, map_location=self.device)
-                self.model.load_state_dict(checkpoint["model_state_dict"])
-                self._is_trained = True
-                logger.info(f"Loaded model from {best_model}")
-        else:
-            # Load from specific file
-            checkpoint = torch.load(path, map_location=self.device)
-            self.model.load_state_dict(checkpoint["model_state_dict"])
-            self._is_trained = True
