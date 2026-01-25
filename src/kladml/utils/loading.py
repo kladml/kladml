@@ -35,6 +35,14 @@ def load_model_class_from_path(model_path: str):
     raise ValueError(f"No BaseModel subclass found in {model_path}.")
 
 
+
+# Common aliases for ease of use
+MODEL_ALIASES = {
+    "gluformer": "kladml.models.timeseries.transformer.gluformer",
+    "gluformer_model": "kladml.models.timeseries.transformer.gluformer",
+    "transformer": "kladml.models.timeseries.transformer.base",
+}
+
 def resolve_model_class(model_identifier: str):
     """
     Resolve model class from identifier (name or path).
@@ -49,14 +57,30 @@ def resolve_model_class(model_identifier: str):
     if model_identifier.endswith(".py") or Path(model_identifier).exists():
         return load_model_class_from_path(model_identifier)
         
-    # 2. Try loading as architecture name
+    # 2. Check aliases
+    module_path = MODEL_ALIASES.get(model_identifier.lower())
+    
+    # 3. If not alias, try direct import (e.g. "timeseries.transformer.gluformer" relative to models)
+    if not module_path:
+        # If it contains dots, assume full path relative to kladml.models
+        if "." in model_identifier:
+            module_path = f"kladml.models.{model_identifier}"
+        else:
+             # Try simple mapping
+             module_path = f"kladml.models.{model_identifier}"
+             
+    # Attempt import
     try:
-        # Import module: kladml.models.{name}
-        module_path = f"kladml.models.{model_identifier}"
         try:
             module = importlib.import_module(module_path)
         except ImportError:
-             raise ValueError(f"Model '{model_identifier}' not found in kladml.models")
+             # Fallback: maybe the user passed "timeseries.transformer.gluformer" without kladml.models prefix
+             # or maybe it's just not found.
+             if module_path.startswith("kladml.models."):
+                 module_path_short = module_path.replace("kladml.models.", "")
+                 # Retry with different prefix if needed? No, standard is kladml.models.
+                 pass
+             raise ValueError(f"Module '{module_path}' not found.")
 
         # Check module's __init__ for a subclass of BaseModel
         for name in dir(module):
@@ -86,3 +110,4 @@ def resolve_model_class(model_identifier: str):
         
     except Exception as e:
         raise ValueError(f"Could not load model '{model_identifier}': {e}")
+

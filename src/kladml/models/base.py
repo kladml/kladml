@@ -20,6 +20,17 @@ class BaseModel(ABC):
     # API version - increment when interface changes
     API_VERSION = 1
     
+    @classmethod
+    def default_config(cls) -> dict[str, Any]:
+        """
+        Return default architectural configuration.
+        
+        Override this to provide smart defaults for the Config Generator.
+        These are values that are independent of the dataset (e.g. dropout rates),
+        but can be overridden by the user.
+        """
+        return {}
+
     def __init__(self, config: Optional[dict[str, Any]] = None):
         """
         Initialize the architecture.
