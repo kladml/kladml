@@ -24,6 +24,10 @@ onnx>=1.14.0
 onnxruntime>=1.15.0
 onnxscript>=0.1.0
 
+# Visualization & Metrics
+matplotlib>=3.7.0
+torchmetrics>=1.0.0
+
 # Development
 pytest>=7.0
 pytest-cov>=4.0
