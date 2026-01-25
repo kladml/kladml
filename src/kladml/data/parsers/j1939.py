@@ -7,7 +7,7 @@ from loguru import logger
 import gc
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Optional, Any
-from ..pipeline import PipelineComponent
+from ..pipeline import PipelineComponent, register_component
 from ..components.resampling import TimeResampler
 
 # J1939 PGNs

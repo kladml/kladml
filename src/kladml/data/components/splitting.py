@@ -2,8 +2,11 @@
 import polars as pl
 from pathlib import Path
 from typing import Any
-from ..pipeline import PipelineComponent
+from ..pipeline import PipelineComponent, register_component
 
+from ..pipeline import PipelineComponent, register_component
+
+@register_component("ChronologicalSplitter")
 class ChronologicalSplitter(PipelineComponent):
     """
     Splits dataset into Train/Val/Test preserving chronological order.

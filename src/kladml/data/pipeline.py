@@ -145,6 +145,13 @@ class ComponentRegistry:
     def get(cls, name: str) -> Optional[type]:
         return cls._registry.get(name)
 
+def register_component(name: str):
+    """Decorator to register a pipeline component."""
+    def decorator(cls):
+        ComponentRegistry.register(name, cls)
+        return cls
+    return decorator
+
 # Auto-register logic (imports components to trigger registration)
 def _register_defaults():
     # Only import if needed to avoid circular imports?

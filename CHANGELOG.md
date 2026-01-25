@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-01-25
+### Added
+- **Declarative Pipelines:** Added `kladml data process` command to run YAML-based preprocessing pipelines.
+- **Component Registry:** Auto-registration via `@register_component` decorator.
+- **Standardized I/O:** Components now exchange `pl.DataFrame` structs for maximum interoperability.
+
 ## [0.10.1] - 2026-01-25
 ### Added
 - **High Performance:** Added `torch.compile` support in `UniversalTrainer` (`compile: true` in config) for 30%+ training speedup on supported hardare.
