@@ -24,6 +24,7 @@
 | **Hierarchy** | ✅ Workspace/Proj/Fam | ❌ Exp/Run | ❌ Project/task |
 | **User Interface** | ✅ TUI (Terminal) | ⚠️ Web UI | ✅ Web UI |
 | **Custom backends** | ✅ Easy | ⚠️ Complex | ❌ No |
+| **Data Engine** | 🚀 **Polars** (Fast) | 🐢 Pandas | 🐢 Pandas |
 
 ---
 
@@ -40,11 +41,11 @@
 # Core (lightweight, minimal dependencies)
 pip install kladml
 
-# All SDK features (tracking, training, dev tools)
-pip install "kladml[all]"
+# Training + Data Engine (includes Polars, Torch)
+pip install "kladml[train]"
 
-# For Vision support (optional)
-pip install "kladml[vision]"
+# Full Suite (Tracking + TUI + Dev)
+pip install "kladml[all]"
 ```
 
 ---
@@ -179,9 +180,9 @@ kladml eval info              # Show available evaluators
 kladml compare --runs r1,r2   # Compare runs side-by-side
 
 # Data
-kladml data inspect <path>    # Analyze a dataset
-kladml data summary <dir>     # Summary of datasets in directory
-kladml data convert ...       # Convert PKL -> HDF5
+kladml data inspect <path>    # Analyze a dataset (Parquet/PKL)
+kladml data summary <dir>     # Summary of datasets
+kladml data convert ...       # Convert PKL -> Parquet/HDF5
 
 # Models
 kladml export ...      # Export to ONNX

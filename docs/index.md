@@ -11,6 +11,7 @@ KladML is a modular SDK for building production-ready machine learning pipelines
 - **Universal Quickstart** - Auto-detect data type, suggest pipeline, train in one command
 - **Interface-based architecture** - Swap backends without changing code
 - **Local-first** - No servers required, works offline with SQLite
+- **High Performance** - Powered by Polars (Data) and Torch Compile (Models)
 - **Extensible** - Register custom architectures, preprocessors, and evaluators
 - **CLI included** - Initialize projects, run experiments from terminal
 
@@ -59,6 +60,7 @@ kladml quickstart --data my_data.csv
 | **Interface-based** | ✅ Pluggable | ❌ Hardcoded | ❌ Hardcoded |
 | **Server required** | ❌ No | ⚠️ Optional | ✅ Yes |
 | **Local-first** | ✅ SQLite default | ✅ Yes | ❌ No |
+| **Data Engine** | 🚀 **Polars** | 🐢 Pandas | 🐢 Pandas |
 | **Learning curve** | 🟢 Minutes | 🟡 Days | 🔴 Weeks |
 | **Universal Quickstart** | ✅ Yes | ❌ No | ❌ No |
 
