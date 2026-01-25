@@ -81,10 +81,14 @@ class TransformerModel(TorchExportMixin, TimeSeriesModel):
             return
             
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        torch.save({
+        state_dict = {
             'model_state_dict': self.model.state_dict(),
             'config': self.config
-        }, path)
+        }
+        if hasattr(self, '_scaler') and self._scaler is not None:
+             state_dict['scaler'] = self._scaler
+             
+        torch.save(state_dict, path)
         logger.info(f"Model saved to {path}")
 
     def load(self, path: str) -> None:
@@ -101,41 +105,30 @@ class TransformerModel(TorchExportMixin, TimeSeriesModel):
             self.build_model() # Hook for subclasses
             
         self.model.load_state_dict(checkpoint['model_state_dict'])
+        
+        if 'scaler' in checkpoint:
+            self._scaler = checkpoint['scaler']
+        
         logger.info(f"Model loaded from {path}")
         self.model.to(self.device)
+        self._is_trained = True
 
     def build_model(self):
         """Abstract method to initialize self.model."""
         raise NotImplementedError("Subclasses must implement build_model()")
         
-    def _init_standard_callbacks(self, run_id: str, project_name: str, experiment_name: str, family_name: Optional[str] = None) -> None:
-        """Initialize standard KladML callbacks (Logger, Checkpoint, EarlyStopping)."""
-        from kladml.training.callbacks import ProjectLogger, CallbackList
-        from kladml.training.checkpoint import CheckpointManager
+    def state_dict(self):
+        """Delegate to inner model."""
+        if self.model is None:
+            return {}
+        return self.model.state_dict()
         
-        self._callbacks_list = CallbackList([])
+    def load_state_dict(self, state_dict):
+        """Delegate to inner model."""
+        if self.model is None:
+            self.build_model()
+        self.model.load_state_dict(state_dict)
         
-        # 1. Project Logger (logs to projects/<project>/<family>/<experiment>/<run_id>)
-        # If family_name is provided, it should be part of the path structure.
-        # KladML standard seems to be project/family/experiment if family exists.
-        
-        self._project_logger = ProjectLogger(
-            project_name=project_name,
-            experiment_name=experiment_name,
-            run_id=run_id,
-            family_name=family_name # Assuming ProjectLogger supports this or we simply construct path
-        )
-        self._callbacks_list.append(self._project_logger)
-        
-        # 2. Checkpoint Manager
-        self._checkpoint_manager = CheckpointManager(
-            project_name=project_name,
-            experiment_name=experiment_name,
-            run_id=run_id,
-            family_name=family_name
-        )
-        # No explicit callback for checkpointing in this simple loop, 
-        # usually handled manually in train loop or via a CheckpointCallback if available.
-        # CanBusModel manual loop calls self._checkpoint_manager.save_checkpoint directly.
+
 
 
