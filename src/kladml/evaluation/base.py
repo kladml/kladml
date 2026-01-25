@@ -62,6 +62,14 @@ class BaseEvaluator(ABC):
         
         # Initialize logger
         self._logger = self._init_logger()
+        
+        # Setup plotting style
+        self._setup_plotting()
+    
+    def _setup_plotting(self):
+        """Configure matplotlib style."""
+        import matplotlib.pyplot as plt
+        plt.style.use('ggplot')
     
     def _init_logger(self):
         """Initialize (noop for loguru)."""

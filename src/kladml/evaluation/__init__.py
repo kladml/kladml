@@ -1,10 +1,18 @@
+
 """
 Evaluation Module for KladML.
 
-Provides base classes and utilities for model evaluation.
+Provides base classes and concrete evaluators.
 """
 
 from .base import BaseEvaluator
-from .timeseries import TimeSeriesEvaluator
+from .classification.evaluator import ClassificationEvaluator
+from .regression.evaluator import RegressionEvaluator
+from .registry import EvaluatorRegistry
 
-__all__ = ["BaseEvaluator", "TimeSeriesEvaluator"]
+__all__ = [
+    "BaseEvaluator", 
+    "ClassificationEvaluator",
+    "RegressionEvaluator",
+    "EvaluatorRegistry"
+]
