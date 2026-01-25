@@ -149,7 +149,7 @@ class MyModel(BaseModel):
 Register it:
 
 ```bash
-kladml register architecture --name MyModel --module my_model.MyModel
+kladml registry register --name MyModel --path my_model.py --type model
 ```
 
 Then use it:

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-01-25
+### Architecture
+- **Operation 100%:** Achieved high test coverage on Core Logic (>80%) and Utilities (96%).
+- **CLI Refactor:** Split monolithic `train.py` and `data.py` into modular command packages.
+- **BaseModel:** Enhanced with native Observer Pattern for callbacks, enabling isolated testing.
+- **Utilities:** Hardened `config_io`, `loading`, and `paths` modules against edge cases.
+
+### Fixed
+- **CallbackList:** Implemented full list behavior for robust event delegation.
+- **Tuner Tests:** Fixed SQLite concurrency issues in test suite.
+## [0.11.0] - 2026-01-25
+### Added
+- **Hyperparameter Tuning:** Added `kladml tune` command powered by Optuna.
+- **Automated Pruning:** `UniversalTrainer` now supports `OptunaPruningCallback` to stop bad runs early.
+- **CLI:** Support for tuning `search_space` definition in YAML configs.
+- **Utils:** Refactored dynamic model loading into `kladml.utils.loading`.
+
 ## [0.10.3] - 2026-01-25
 ### Fixed
 - Updated CLI examples to use more realistic paths (`data/datasets/canbus`).
