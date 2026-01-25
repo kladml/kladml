@@ -42,6 +42,16 @@ class CallbackList:
     def __init__(self, callbacks: list[Callback] | None = None):
         self.callbacks = callbacks or []
     
+    
+    def __getitem__(self, index: int) -> Callback:
+        return self.callbacks[index]
+    
+    def __iter__(self):
+        return iter(self.callbacks)
+
+    def __len__(self) -> int:
+        return len(self.callbacks)
+
     def append(self, callback: Callback) -> None:
         """Add a callback."""
         self.callbacks.append(callback)
