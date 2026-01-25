@@ -65,9 +65,13 @@ Explore projects, runs, and datasets visually in your terminal.
 
 ### 3. Training
 ```bash
-# Train using a config file
+# Train using a config file (auto-detects GPU/MPS)
 kladml train --config data/configs/my_config.yaml
+
+# Distributed Training (Multi-GPU)
+kladml train --config ... --distributed --num-processes 2
 ```
+✅ **Universal Trainer**: Supports Mixed Precision (FP16/BF16), Gradient Accumulation, and Multi-GPU without changing code.
 
 ---
 
