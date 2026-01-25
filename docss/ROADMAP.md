@@ -115,22 +115,14 @@
 
 ---
 
-## Phase 10: Hyperparameter Tuning (Optuna Integration)
-- [ ] `OptunaStudy` wrapper class for architecture-aware HP optimization
-- [ ] Define `SearchSpace` per architecture type:
-    ```python
-    class TransformerSearchSpace(BaseSearchSpace):
-        d_model: Tuple[int, int] = (64, 256)
-        n_heads: Tuple[int, int] = (2, 8)
-        n_layers: Tuple[int, int] = (2, 6)
-        learning_rate: Tuple[float, float] = (1e-5, 1e-2)
-    ```
-- [ ] Pruning strategies (Median, Hyperband)
-- [ ] CLI: `kladml tune --config <path> --n-trials 50 --timeout 3600`
-- [ ] Save best trial as new config file
-- [ ] Visualization: optimization history, parameter importance
+## Phase 10: Hyperparameter Tuning (Optuna Integration) (Completed v0.11.0) ✅
+- [x] `OptunaStudy` wrapper class (`KladMLTuner`)
+- [x] Define `SearchSpace` in Config YAML structure
+- [x] Pruning strategies (TrialPruned integration in Trainer)
+- [x] CLI: `kladml tune --config <path> --trials 50`
+- [x] Save best trial (Output to console, params available)
 - [ ] Multi-objective optimization (accuracy vs latency)
-- [ ] Database backend for distributed tuning (SQLite/Postgres)
+- [x] Database backend (via --storage sqlite:///...)
 
 ---
 

@@ -203,48 +203,7 @@ kladml run native train.py --experiment baseline
 
 ---
 
-### `kladml run local`
 
-Run a training script inside a Docker/Podman container.
-
-```bash
-kladml run local <script> [OPTIONS]
-```
-
-**Arguments:**
-
-| Argument | Description |
-|----------|-------------|
-| `script` | Path to the Python script to run |
-
-**Options:**
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--device`, `-d` | `auto` | Device to use: `auto`, `cpu`, `cuda`, `mps` |
-| `--runtime`, `-r` | `auto` | Container runtime: `auto`, `docker`, `podman` |
-| `--image`, `-i` | (auto) | Custom Docker image to use |
-
-**Examples:**
-
-```bash
-# Auto-detect runtime and device
-kladml run local train.py
-
-# Force CUDA and Docker
-kladml run local train.py --device cuda --runtime docker
-
-# Use custom image
-kladml run local train.py --image my-registry/my-image:latest
-```
-
-**Default Images:**
-
-| Device | Image |
-|--------|-------|
-| `cpu` | `ghcr.io/kladml/worker:cpu` |
-| `cuda` | `ghcr.io/kladml/worker:cuda12` |
-| `mps` | `ghcr.io/kladml/worker:cpu` (fallback) |
 
 ---
 
@@ -501,19 +460,19 @@ kladml compare --runs run_001,run_002,run_003 --metric accuracy --output compari
 
 ## Component Registration
 
-### `kladml register`
+### `kladml registry register`
 
 Register custom components (architectures, preprocessors, evaluators).
 
 ```bash
-kladml register <component_type> [OPTIONS]
+kladml registry register [OPTIONS]
 ```
 
 **Component Types:**
 
 | Type | Description |
 |------|-------------|
-| `architecture` | Custom model architecture |
+| `model` | Custom model architecture |
 | `preprocessor` | Custom data preprocessor |
 | `evaluator` | Custom evaluator |
 
@@ -522,36 +481,40 @@ kladml register <component_type> [OPTIONS]
 | Option | Required | Description |
 |--------|----------|-------------|
 | `--name`, `-n` | Yes | Name for the component |
-| `--module`, `-m` | Yes | Python module path (e.g., `my_pkg.MyClass`) |
-| `--description` | No | Description of the component |
+| `--path`, `-p` | Yes | Path to artifact file/dir |
+| `--type`, `-t` | Yes | Type (model, preprocessor, etc.) |
+| `--tag` | No | Tags to attach |
 
 **Examples:**
 
 ```bash
 # Register a custom architecture
-kladml register architecture --name MyTransformer --module my_models.MyTransformer
+kladml registry register --name MyTransformer --path src/models/my_transformer.py --type model --tag experimental
 
 # Register a custom preprocessor
-kladml register preprocessor --name MyScaler --module my_transforms.MyScaler
-
-# Register a custom evaluator
-kladml register evaluator --name MyEvaluator --module my_eval.MyEvaluator
+kladml registry register --name MyScaler --path src/data/scaler.pkl --type preprocessor
 ```
 
-### `kladml list`
+### `kladml registry list`
 
-List registered components.
+List registered artifacts.
 
 ```bash
-kladml list <component_type>
+kladml registry list [OPTIONS]
 ```
 
 **Examples:**
 
 ```bash
-kladml list architectures
-kladml list preprocessors
-kladml list evaluators
-kladml list datasets
-kladml list runs
+kladml registry list --type model
+kladml registry list --tag production
 ```
+
+### `kladml registry show`
+
+Show details of a registered artifact.
+
+```bash
+kladml registry show <name>
+```
+
