@@ -1,144 +1,83 @@
-"""
-Evaluation CLI for KladML.
-
-Commands for running model evaluation.
-"""
 
 import typer
 from pathlib import Path
-from typing import Optional
 from rich.console import Console
-from rich.table import Table
+from typing import Optional
 
-app = typer.Typer(
-    help="Model evaluation commands",
-    no_args_is_help=True
-)
+from kladml.evaluation.registry import EvaluatorRegistry
+from kladml.tasks import MLTask
+# from kladml.utils.loading import load_model_metadata # Hypothetical helper
 
+app = typer.Typer(help="Run evaluations.")
 console = Console()
-
 
 @app.command("run")
 def run_evaluation(
-    checkpoint: Path = typer.Option(
-        ..., 
-        "--checkpoint", "-c",
-        help="Path to model checkpoint (.pt or .pth)"
-    ),
-    data: Path = typer.Option(
-        ..., 
-        "--data", "-d",
-        help="Path to evaluation dataset (.h5 or .pkl)"
-    ),
-    model: str = typer.Option(
-        "gluformer", 
-        "--model", "-m",
-        help="Model type (gluformer)"
-    ),
-    device: str = typer.Option(
-        "cpu",
-        "--device",
-        help="Device for inference (cpu, cuda, mps)"
-    ),
-    output_dir: Optional[Path] = typer.Option(
-        None,
-        "--output", "-o",
-        help="Output directory (default: checkpoint parent)"
-    ),
-):
+    run_id: str = typer.Option(..., "--run-id", "-r", help="Run ID to evaluate"),
+    model_path: str = typer.Option(..., "--model", "-m", help="Path to model file"),
+    data_path: str = typer.Option(..., "--data", "-d", help="Path to test data"),
+    task: Optional[str] = typer.Option(None, "--task", "-t", help="Override ML Task (classification, regression)"),
+    output_dir: Optional[str] = typer.Option(None, "--output", "-o", help="Output directory"),
+) -> None:
     """
-    Run model evaluation and generate report.
-    
-    Evaluates the model on the provided dataset and generates:
-    - evaluation_report.md: Comprehensive Markdown report
-    - evaluation.log: Execution log
-    - evaluation_metrics.json: Metrics in JSON format
-    - plots/: Directory with visualization plots
-    
-    Example:
-        kladml eval run -c best_model_jit.pt -d test.h5 -m gluformer
+    Run evaluation on a model.
     """
-    # Validate inputs
-    if not checkpoint.exists():
-        console.print(f"[red]Error: Checkpoint not found: {checkpoint}[/red]")
-        raise typer.Exit(1)
-    
-    if not data.exists():
-        console.print(f"[red]Error: Data not found: {data}[/red]")
-        raise typer.Exit(1)
-    
-    # Determine output directory
-    run_dir = output_dir or checkpoint.parent
-    
-    console.print(f"\n[bold blue]KladML Evaluation[/bold blue]")
-    console.print(f"  Model: {model}")
-    console.print(f"  Checkpoint: {checkpoint}")
-    console.print(f"  Data: {data}")
-    console.print(f"  Output: {run_dir}")
-    console.print(f"  Device: {device}")
-    console.print()
-    
-    # Select evaluator based on model type
-    if model.lower() == "gluformer":
-        from kladml.models.timeseries.transformer.gluformer.evaluator import GluformerEvaluator
-        evaluator = GluformerEvaluator(
-            run_dir=run_dir,
-            model_path=checkpoint,
-            data_path=data,
-            device=device
-        )
-    else:
-        console.print(f"[red]Error: Unknown model type: {model}[/red]")
-        console.print("Supported models: gluformer")
-        raise typer.Exit(1)
-    
-    # Run evaluation
-    console.print("[bold]Running evaluation...[/bold]\n")
-    
     try:
+        # 1. Determine Output Dir
+        if output_dir:
+            out_path = Path(output_dir)
+        else:
+            # Default to runs/<run_id>/evaluation
+            # But we don't know where runs are without querying the DB/Tracker or assuming folder structure.
+            # providing an explicit output_dir for now is safer if stand-alone.
+            out_path = Path(f"./evaluations/{run_id}")
+        
+        out_path.mkdir(parents=True, exist_ok=True)
+            
+        # 2. Determine Task (Auto-detect or Override)
+        # In a real scenario, we'd load the model config to find the task.
+        # For now, we require --task if we can't load the model class to check.
+        # But let's assume the user provides it or we default to Classification if uncertain?
+        # Better: Try to deduce from EvaluatorRegistry if not provided? No, we need task to PICK evaluator.
+        
+        if not task:
+            # TODO: Load model metadata to find task
+            console.print("[yellow]Task not specified. Trying to detect...[/yellow]")
+            # Placeholder detection
+            detected_task = MLTask.CLASSIFICATION # Fallback
+            console.print(f"Assuming task: [cyan]{detected_task.value}[/cyan]")
+            task_enum = detected_task
+        else:
+            try:
+                task_enum = MLTask(task.lower())
+            except ValueError:
+                console.print(f"[red]Invalid task: {task}[/red]")
+                raise typer.Exit(1)
+        
+        # 3. Get Evaluator Class
+        try:
+            evaluator_cls = EvaluatorRegistry.get_evaluator(task_enum)
+        except ValueError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(1)
+            
+        console.print(f"Using Evaluator: [green]{evaluator_cls.__name__}[/green]")
+        
+        # 4. Instantiate and Run
+        evaluator = evaluator_cls(
+            run_dir=out_path,
+            model_path=Path(model_path),
+            data_path=Path(data_path),
+            config={"compute_auroc": True} # Default config
+        )
+        
         metrics = evaluator.run()
+        
+        console.print(f"\n[bold green]Evaluation Complete![/bold green]")
+        console.print(f"Report saved to: {out_path}/evaluation_report.md")
+        
     except Exception as e:
-        console.print(f"[red]Evaluation failed: {e}[/red]")
+        console.print(f"[red]Evaluation failed:[/red] {e}")
+        import traceback
+        traceback.print_exc()
         raise typer.Exit(1)
-    
-    # Display results
-    console.print("\n[bold green]✓ Evaluation Complete![/bold green]\n")
-    
-    # Create metrics table
-    table = Table(title="Metrics Summary")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="green")
-    
-    for name, value in metrics.items():
-        table.add_row(name, f"{value:.4f}")
-    
-    console.print(table)
-    
-    # Show output paths
-    console.print(f"\n[bold]Output Files:[/bold]")
-    console.print(f"  📄 Report: {run_dir / 'evaluation_report.md'}")
-    console.print(f"  📊 Metrics: {run_dir / 'evaluation_metrics.json'}")
-    console.print(f"  📝 Log: {run_dir / 'evaluation.log'}")
-    console.print(f"  📈 Plots: {run_dir / 'plots/'}")
-
-
-@app.command("info")
-def info():
-    """
-    Show information about available evaluators.
-    """
-    console.print("\n[bold]Available Evaluators[/bold]\n")
-    
-    table = Table()
-    table.add_column("Model", style="cyan")
-    table.add_column("Evaluator", style="green")
-    table.add_column("Description")
-    
-    table.add_row(
-        "gluformer", 
-        "GluformerEvaluator",
-        "Probabilistic glucose forecasting with uncertainty metrics"
-    )
-    
-    console.print(table)
-    console.print()

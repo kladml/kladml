@@ -14,6 +14,7 @@ class MLTask(str, Enum):
     This must stay in sync with the platform taxonomy seeded in the backend.
     """
     # Supervised - Classification
+    CLASSIFICATION = "classification"
     IMAGE_CLASSIFICATION = "image_classification"
     TEXT_CLASSIFICATION = "text_classification"
     AUDIO_CLASSIFICATION = "audio_classification"
