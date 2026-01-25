@@ -1,5 +1,5 @@
 
-import pandas as pd
+import polars as pl
 from pathlib import Path
 from typing import Any
 from ..pipeline import PipelineComponent
@@ -18,29 +18,30 @@ class ChronologicalSplitter(PipelineComponent):
     def fit(self, data: Any) -> 'ChronologicalSplitter':
         return self
 
-    def transform(self, df: pd.DataFrame) -> dict[str, str]:
+    def transform(self, df: pl.DataFrame) -> dict[str, str]:
         """
         Splits DataFrame and saves parts.
         Returns paths to saved files.
         """
-        if df.empty:
+        if df.is_empty():
             return {}
             
         if 'trip_id' not in df.columns:
-            # If no trips, just straight split? Or error?
-            # Assume single trip
-            df['trip_id'] = 0
+            df = df.with_columns(pl.lit(0).alias("trip_id"))
             
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         
-        # Trip Stats
-        # Sort trips by start time
-        trip_stats = df.groupby('trip_id').agg(
-            start_time=('timestamp', 'min'), 
-            count=('timestamp', 'count')
-        ).sort_values('start_time')
+        # Trip Stats: start_time, count
+        trip_stats = (
+            df.group_by("trip_id")
+            .agg([
+                pl.col("timestamp").min().alias("start_time"),
+                pl.len().alias("count")
+            ])
+            .sort("start_time")
+        )
         
-        total_rows = trip_stats['count'].sum()
+        total_rows = trip_stats["count"].sum()
         target_train = total_rows * self.train_ratio
         target_val = total_rows * self.val_ratio
         
@@ -50,8 +51,9 @@ class ChronologicalSplitter(PipelineComponent):
         
         current_count = 0
         
-        # Greedy allocation respecting order
-        for trip_id, row in trip_stats.iterrows():
+        # Iterate (small number of trips usually, loop is invalid overhead)
+        for row in trip_stats.iter_rows(named=True):
+            trip_id = row['trip_id']
             count = row['count']
             
             if current_count < target_train:
@@ -69,13 +71,11 @@ class ChronologicalSplitter(PipelineComponent):
             if not trips:
                 continue
                 
-            subset = df[df['trip_id'].isin(trips)].copy()
-            # Drop aux columns if cleaner output desired? Keep timestamp.
-            # Maybe drop trip_id if not needed downstream? Keep it for debug.
+            # Filter
+            subset = df.filter(pl.col("trip_id").is_in(trips))
             
             path = Path(self.output_dir) / f"{name}.parquet"
-            subset.to_parquet(path)
+            subset.write_parquet(path)
             parts[name] = str(path)
             
-        # Also save split metadata?
         return parts

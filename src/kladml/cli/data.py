@@ -110,6 +110,51 @@ def _analyze_pkl(path: Path) -> dict:
     return result
 
 
+def _analyze_parquet(path: Path) -> dict:
+    """Analyze a .parquet file using Polars."""
+    import polars as pl
+    
+    try:
+        # Lazy scan for speed
+        lf = pl.scan_parquet(path)
+        schema = lf.schema
+        
+        # Determine strictness via file info or just fetch schema
+        # For stats we need to collect a bit
+        
+        # Quick stats?
+        # Just getting length and first row
+        df_head = lf.limit(5).collect()
+        total_rows = lf.select(pl.count()).collect().item()
+        
+        result = {
+            "path": str(path),
+            "size": path.stat().st_size,
+            "type": "Parquet (Polars)",
+            "classification": "tabular",
+            "num_items": total_rows,
+            "columns": list(schema.keys()),
+            "schema": {k: str(v) for k, v in schema.items()}
+        }
+        
+        # Check if columns are Lists (Timeseries)
+        first_row = df_head.row(0) if len(df_head) > 0 else None
+        if first_row:
+             # Just heuristic
+             pass
+             
+        return result
+    except Exception as e:
+        return {
+            "path": str(path),
+            "size": path.stat().st_size,
+            "type": "Parquet (Error)",
+            "classification": "corrupt",
+            "error": str(e)
+        }
+
+
+
 @app.command("inspect")
 def inspect_dataset(
     path: str = typer.Argument(..., help="Path to .pkl file or directory"),
@@ -131,9 +176,9 @@ def inspect_dataset(
     
     # Get list of files to inspect
     if target.is_dir():
-        files = list(target.glob("*.pkl"))
+        files = list(target.glob("*.pkl")) + list(target.glob("*.parquet"))
         if not files:
-            console.print(f"[yellow]No .pkl files found in {path}[/yellow]")
+            console.print(f"[yellow]No .pkl or .parquet files found in {path}[/yellow]")
             raise typer.Exit(code=0)
     else:
         files = [target]
@@ -142,7 +187,11 @@ def inspect_dataset(
     
     for file_path in sorted(files):
         try:
-            info = _analyze_pkl(file_path)
+            if file_path.suffix == ".parquet":
+                info = _analyze_parquet(file_path)
+            else:
+                info = _analyze_pkl(file_path)
+            
             
             # Classification badge
             class_colors = {
@@ -278,8 +327,24 @@ def convert_dataset(
     """
     from kladml.data.converter import convert_pkl_to_hdf5
     
+    if format.lower() == "parquet":
+        from kladml.data.converter import convert_pkl_to_parquet
+        # Default ZSTD for parquet if user left gzip default (which is HDF5 default)
+        comp = "zstd" if compression == "gzip" else compression
+        if args_compression_was_none_flag: # Hard to detect via Typer defaulting logic without inspecting ctx value
+             comp = "zstd" 
+        # Simpler: just pass compression. Polars handles gzip too.
+        
+        try:
+            convert_pkl_to_parquet(input_path, output_path, compression=compression)
+            console.print("[green]✓ Parquet conversion successful![/green]")
+            return
+        except Exception as e:
+            console.print(f"[red]Conversion failed:[/red] {e}")
+            raise typer.Exit(code=1)
+
     if format.lower() != "hdf5":
-        console.print(f"[red]Error:[/red] Only 'hdf5' format is currently supported.")
+        console.print(f"[red]Error:[/red] Supported formats: 'hdf5', 'parquet'")
         raise typer.Exit(code=1)
         
     input_file = Path(input_path)

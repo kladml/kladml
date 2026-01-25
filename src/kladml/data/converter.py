@@ -125,6 +125,66 @@ def convert_pkl_to_hdf5(
     return stats
 
 
+def convert_pkl_to_parquet(
+    input_path: str,
+    output_path: str,
+    compression: str = "zstd",
+) -> dict:
+    """
+    Convert a PKL dataset to Parquet format (using Polars).
+    Structure: DataFrame with columns 'glucose' (List[Float32]), 'insulin' (List[Float32]).
+    """
+    import polars as pl
+    
+    print(f"[convert] Loading {input_path}...")
+    raw_data = joblib.load(input_path)
+    
+    # Normalize to list of dicts format
+    data_list = _normalize_data(raw_data)
+    
+    print(f"[convert] Found {len(data_list)} series. Converting to Polars DataFrame...")
+    
+    # Create DataFrame
+    # Note: data_list contains numpy arrays. Polars handles them as Lists directly?
+    # Polars prefers lists over numpy arrays for construction if inside generic python list.
+    # But let's try direct construction.
+    
+    try:
+        df = pl.DataFrame(data_list)
+    except Exception as e:
+        # Fallback: Convert numpy arrays to lists? (Slow but safe)
+        print(f"[convert] Polars conversion warning: {e}. Trying scalar conversion...")
+        data_safe = []
+        for item in data_list:
+            data_safe.append({k: v.tolist() if hasattr(v, 'tolist') else v for k, v in item.items()})
+        df = pl.DataFrame(data_safe)
+
+    print(f"[convert] Writing Parquet to {output_path}...")
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    df.write_parquet(output_path, compression=compression)
+    
+    # Get file sizes
+    input_size = Path(input_path).stat().st_size
+    output_size = output_path.stat().st_size
+    ratio = output_size / input_size * 100
+    
+    stats = {
+        "num_series": len(df),
+        "columns": df.columns,
+        "input_size_mb": input_size / 1024 / 1024,
+        "output_size_mb": output_size / 1024 / 1024,
+        "compression_ratio": ratio,
+    }
+    
+    print(f"[convert] Done!")
+    print(f"[convert] Series: {stats['num_series']}")
+    print(f"[convert] Output size: {stats['output_size_mb']:.2f} MB ({ratio:.1f}%)")
+    
+    return stats
+
+
 def _normalize_data(raw_data) -> list:
     """Normalize various input formats to list of dicts."""
     if isinstance(raw_data, list) and len(raw_data) > 0:
