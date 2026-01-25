@@ -383,7 +383,7 @@ kladml data inspect <path>
 
 ### `kladml data convert`
 
-Convert a dataset to HDF5 format for lazy loading.
+Convert a dataset to efficient formats (Parquet, HDF5).
 
 ```bash
 kladml data convert [OPTIONS]
@@ -394,13 +394,14 @@ kladml data convert [OPTIONS]
 | Option | Required | Description |
 |--------|----------|-------------|
 | `--input`, `-i` | Yes | Input `.pkl` file path |
-| `--output`, `-o` | Yes | Output `.h5` file path |
-| `--compression` | No | Compression (gzip, lzf). Default: gzip |
+| `--output`, `-o` | Yes | Output file path (`.parquet` or `.h5`) |
+| `--format`, `-f` | No | Format: `parquet`, `hdf5` (default: `hdf5`) |
+| `--compression` | No | Compression (gzip, zstd). Default: gzip/zstd |
 
 **Example:**
 
 ```bash
-kladml data convert -i train.pkl -o train.h5
+kladml data convert -i train.pkl -o train.parquet --format parquet
 ```
 
 ---

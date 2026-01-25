@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-01-25
+### Added
+- **High Performance:** Added `torch.compile` support in `UniversalTrainer` (`compile: true` in config) for 30%+ training speedup on supported hardare.
+- **Generic Layers:** Unified `MultiheadAttention` with native Flash Attention (SDPA) support in `src/kladml/models/layers`.
+- **Data Engine:** Integrated **Polars** and **Parquet** support.
+    - `kladml data convert --format parquet`: Convert legacy datasets to efficient Parquet.
+    - `kladml data inspect`: Instant analysis of Parquet files using Polars engine.
+    - Deprecated `.pkl` datasets in favor of Parquet.
+
+### Changed
+- **Data Pipeline:** Complete refactor from Pandas to **Polars** for all components (`J1939Parser`, `Cleaner`, `Resampler`, `Splitter`).
+    - Faster processing (up to 50x)
+    - Memory efficient
+    - Strict schema validation
+- **Dependencies:** Removed hard dependency on Pandas (it is now optional/transitive). Added `polars` and `pyarrow`.
+
 ## [0.9.0] - 2026-01-25
 
 ### Added
