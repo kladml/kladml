@@ -85,6 +85,17 @@ class UniversalTrainer:
             
         optimizer = self.optimizer
         
+        # Compile model (PyTorch 2.0+)
+        if getattr(self.config, "compile", False): # Safely access if config has it
+             if self.accelerator.device.type == "mps":
+                 logger.warning("torch.compile() is currently experimental on MPS and may crash. Skipping.")
+             else:
+                 logger.info("Compiling model with torch.compile() for speedup...")
+                 try:
+                     model = torch.compile(model)
+                 except Exception as e:
+                     logger.warning(f"torch.compile() failed: {e}. Proceeding with eager mode.")
+        
         # 2. Accelerate Prepare
         # Prepares: model (DDP wrapped), optimizer, dataloaders
         # Note: If val_dataloaders is None, we generate empty list to avoid unpack error? 

@@ -1,5 +1,5 @@
 
-import pandas as pd
+import polars as pl
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -8,12 +8,7 @@ from typing import Optional
 class CanBusDataset(Dataset):
     """
     Dataset for CAN Bus Anomaly Detection.
-    
-    Features:
-    - Loads Parquet file.
-    - Normalizes data (StandardScaler).
-    - Creates sliding windows respecting trip boundaries.
-    - Returns (window, window) for Autoencoder training.
+    Loads Parquet using Polars (Fast).
     """
     
     def __init__(
@@ -29,10 +24,16 @@ class CanBusDataset(Dataset):
         self.step = step
         self.features = features
         
-        # Load Data
-        df = pd.read_parquet(path)
-        self.raw_data = df[features].values.astype(np.float32)
-        timestamps = pd.to_datetime(df['timestamp'])
+        # Load Data (Polars)
+        df = pl.read_parquet(path)
+        
+        # Extract Numpy Arrays
+        # Select features, cast to float32, to_numpy
+        self.raw_data = df.select(features).to_numpy().astype(np.float32)
+        
+        # Timestamps for logic
+        # Polars timestamps to numpy (datetime64[ns])
+        self.timestamps_ns = df["timestamp"].to_numpy()
         
         # Calculate Scaler (if not provided) or Apply
         if scaler_stats is None:
@@ -51,35 +52,25 @@ class CanBusDataset(Dataset):
         self.data = (self.raw_data - self.mean) / self.std
         
         # Build Index (Sliding Window Config)
-        self.indices = self._build_indices(timestamps)
+        self.indices = self._build_indices(self.timestamps_ns)
         
-    def _build_indices(self, timestamps: pd.Series) -> np.ndarray:
+    def _build_indices(self, timestamps: np.ndarray) -> np.ndarray:
         """
         Create a list of (start_idx) for valid windows.
         A window is valid if it lies entirely within one trip (gap <= 2.0s).
         """
-        # Identify gaps > 2.0s
-        # True if gap > 2.0s at that index
-        # We need to vectorized this.
+        # Calculate time diffs in seconds
+        # timestamps is numpy datetime64[ns]
+        # diff in ns -> / 1e9 -> seconds
         
-        # Calculate time diffs
-        # We can detect trips first
-        gaps = timestamps.diff().dt.total_seconds().fillna(0).values
-        trip_ids = (gaps > 2.0).cumsum()
+        diffs = np.zeros(len(timestamps), dtype=np.float64)
+        if len(timestamps) > 1:
+            diffs[1:] = (timestamps[1:] - timestamps[:-1]).astype(float) / 1e9
+            
+        trip_ids = (diffs > 2.0).cumsum()
         
-        valid_starts = []
         total_len = len(self.data)
-        
-        # We iterate through data. Vectorized approach:
-        # A window [i : i+w] is valid if trip_ids[i] == trip_ids[i+w-1]
-        
-        # Generate all possible starts
         possible_starts = np.arange(0, total_len - self.window_size + 1, self.step)
-        
-        # Check trip consistency
-        # trip_start = trip_ids[possible_starts]
-        # trip_end = trip_ids[possible_starts + self.window_size - 1]
-        # valid_mask = (trip_start == trip_end)
         
         start_trips = trip_ids[possible_starts]
         end_trips = trip_ids[possible_starts + self.window_size - 1]
