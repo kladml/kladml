@@ -221,27 +221,38 @@ KladML uses a modular interface-based design. This ensures your training code is
 
 ---
 
-## Training & Callbacks
+## Training Architecture
+Starting from v0.9.0, KladML uses a **Universal Trainer** powered by **Hugging Face Accelerate**.
 
-Starting from v0.3.0, KladML standardizes the training lifecycle for all models.
+### Key Features
+1.  **Backend Agnostic**: The exact same code runs on:
+    *   **CPU** (Standard)
+    *   **GPU** (CUDA for NVIDIA, MPS for Apple Silicon)
+    *   **Multi-GPU** (DDP via `distributed` flag)
+    *   **TPU** (Google Cloud)
 
-### Standard Features
-Every model inheriting from `BaseModel` automatically gets:
+2.  **Capabilities**:
+    *   **Mixed Precision**: Native support for `fp16` (halves memory usage) and `bf16` (better stability).
+    *   **Gradient Accumulation**: Simulate large batch sizes on small hardware.
+    *   **Gradient Clipping**: Stabilize training automatically.
 
-1.  **Structured Logging**: Training logs are saved to `data/projects/<project>/<experiment>/<run_id>/training.jsonl`.
-2.  **Automatic Checkpointing**: 
-    - `best_model.pth`: PyTorch state dict (weights + optimizer) for resuming training.
-    - `best_model_jit.pt`: TorchScript artifact optimized for deployment.
-3.  **Metrics Tracking**: Loss and validation metrics are tracked per epoch.
+3.  **Lifecycle Management**:
+    *   **Checkpoints**: Automatic saving of `best_model` and periodic states.
+    *   **Early Stopping**: Configurable patience and delta.
+    *   **Tracking**: Seamless integration with MLflow (or custom trackers) via `TrackerInterface`.
 
-### Configurable Early Stopping
-Early stopping is built-in but fully configurable via your `config.yaml` or run configuration:
+### Configuration
+Everything is controlled via `TrainingConfig`:
 
 ```yaml
-early_stopping:
-  enabled: true       # Set to false to disable
-  patience: 10        # Epochs to wait for improvement
-  min_delta: 0.001    # Minimum change to count as improvement
+training:
+  max_epochs: 100
+  batch_size: 64
+  mixed_precision: "fp16"       # no | fp16 | bf16
+  gradient_accumulation_steps: 4
+  gradient_clipping: 1.0
+  
+  early_stopping:
+    enabled: true
+    patience: 10
 ```
-
-If not specified, defaults are: enabled=True, patience=5.
