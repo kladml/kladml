@@ -110,8 +110,8 @@ def show_artifact(
             console.print(artifact.metadata_json)
 
 
-@app.command("register")
-def register_artifact(
+@app.command("add")
+def add_artifact(
     name: str = typer.Option(..., "--name", "-n", help="Artifact name"),
     path: str = typer.Option(..., "--path", "-p", help="Path to artifact file/dir"),
     type: str = typer.Option("model", "--type", "-t", help="Type (model, preprocessor, etc.)"),
@@ -120,7 +120,7 @@ def register_artifact(
     status: str = typer.Option("production", "--status", help="Status"),
 ):
     """
-    Manually register an artifact in the database.
+    Add (track) an existing artifact in the registry.
     """
     path_obj = Path(path).resolve()
     if not path_obj.exists():

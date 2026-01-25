@@ -31,10 +31,16 @@ def get_db_path() -> Path:
     """
     url = settings.database_url
     if url.startswith("sqlite:///"):
-        return Path(url.replace("sqlite:///", ""))
-    # Fallback or error for non-sqlite? 
-    # For now assume mostly sqlite usage in local backend
-    return Path("kladml.db")
+        path_str = url.replace("sqlite:///", "")
+        # If path is just a filename (no slash), put it in standardized db dir
+        if "/" not in path_str and "\\" not in path_str:
+            from kladml.utils.paths import get_root_data_path, DB_DIR
+            return get_root_data_path() / DB_DIR / path_str
+        return Path(path_str)
+        
+    # Fallback default
+    from kladml.utils.paths import get_root_data_path, DB_DIR
+    return get_root_data_path() / DB_DIR / "kladml.db"
 
 
 def get_db_url() -> str:

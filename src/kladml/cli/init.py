@@ -45,6 +45,7 @@ def init_workspace(
         data_node.add("📁 preprocessors/")
         data_node.add("📁 models/")
         data_node.add("📁 projects/")
+        data_node.add("📁 db/")
         
         console.print(tree)
         
