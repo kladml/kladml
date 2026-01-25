@@ -39,6 +39,8 @@ train = [
     "onnxruntime>=1.15.0",
     "h5py>=3.0.0",
     "onnxscript>=0.1.0",
+    "matplotlib>=3.7.0",
+    "torchmetrics>=1.0.0",
 ]
 tracking = [
     "mlflow>=2.14.0,<3.0.0",
