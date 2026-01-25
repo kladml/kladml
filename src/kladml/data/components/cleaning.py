@@ -1,5 +1,5 @@
 
-import pandas as pd
+import polars as pl
 from typing import Any
 from ..pipeline import PipelineComponent
 
@@ -20,23 +20,25 @@ class J1939Cleaner(PipelineComponent):
     def fit(self, data: Any) -> 'J1939Cleaner':
         return self
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        if df.empty:
+    def transform(self, df: pl.DataFrame) -> pl.DataFrame:
+        if df.is_empty():
             return df
             
-        df = df.copy()
-        
+        # We process columns that exist
+        exprs = []
         for col, limit in self.limits.items():
             if col in df.columns:
-                # Mask values exceeding physical limits (usually error codes or FF)
-                mask = df[col] > limit
-                if mask.any():
-                    # Set to 0 or NaN?
-                    # User script set to 0.0. We'll stick to that for compatibility,
-                    # but maybe NaN is better for models? 
-                    # Let's keep 0.0 as per "prepare_canbus_dataset.py" behavior.
-                    df.loc[mask, col] = 0.0
-                    
+                # Mask values exceeding physical limits (set to 0.0)
+                # Logic: if val > limit, then 0.0, else val
+                exprs.append(
+                    pl.when(pl.col(col) > limit)
+                    .then(0.0)
+                    .otherwise(pl.col(col))
+                    .alias(col)
+                )
+        
+        if exprs:
+            return df.with_columns(exprs)
         return df
 
 class TripSegmenter(PipelineComponent):
@@ -51,36 +53,41 @@ class TripSegmenter(PipelineComponent):
     def fit(self, data: Any) -> 'TripSegmenter':
         return self
         
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        if df.empty:
-            return df
+    def transform(self, df: pl.DataFrame) -> pl.DataFrame:
+        if df.is_empty():
+             return df
             
-        df = df.copy()
-        
-        # Ensure timestamp column availability or index
-        if 'timestamp' not in df.columns and isinstance(df.index, pd.DatetimeIndex):
-             df['timestamp'] = df.index
-             
+        # Ensure timestamp column availability
+        # Need to check if proper datetime type
         if 'timestamp' not in df.columns:
-            # Fallback if just index
-            raise ValueError("TripSegmenter requires 'timestamp' column or DatetimeIndex")
+            raise ValueError("TripSegmenter requires 'timestamp' column in DataFrame")
 
         # 1. Identify Changes
         # Calculate diff in seconds
-        time_diff = df['timestamp'].diff().dt.total_seconds().fillna(0)
+        # Polars: diff() returns Duration
+        time_diff = df["timestamp"].diff().dt.total_seconds().fill_null(0.0)
         
         # New trip if gap > threshold
         trip_change = time_diff > self.gap_seconds
-        df['trip_id'] = trip_change.cumsum()
+        trip_id = trip_change.cum_sum().alias("trip_id")
+        
+        df = df.with_columns([trip_id])
         
         # 2. Filter Short Trips
-        # We need sampling rate to convert seconds to count? Or just use time span?
-        # Using time span is more robust.
+        # Group by trip_id, calculate duration (max - min)
+        # We can use a window function or groupby-agg-join
         
-        trip_durations = df.groupby('trip_id')['timestamp'].agg(lambda x: (x.max() - x.min()).total_seconds())
-        valid_trips = trip_durations[trip_durations >= self.min_duration_seconds].index
+        trip_stats = (
+            df.group_by("trip_id")
+            .agg([
+                (pl.col("timestamp").max() - pl.col("timestamp").min()).dt.total_seconds().alias("duration")
+            ])
+            .filter(pl.col("duration") >= self.min_duration_seconds)
+        )
         
-        # Filter
-        df_clean = df[df['trip_id'].isin(valid_trips)].copy()
+        # Filter original df to keep only valid trips
+        # Semi-join
+        valid_trips = trip_stats.select("trip_id")
+        df_clean = df.join(valid_trips, on="trip_id", how="inner")
         
         return df_clean

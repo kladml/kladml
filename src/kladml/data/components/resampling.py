@@ -1,5 +1,5 @@
 
-import pandas as pd
+import polars as pl
 from typing import Any
 from ..pipeline import PipelineComponent
 
@@ -7,53 +7,105 @@ class TimeResampler(PipelineComponent):
     """
     Resamples time-series data to a fixed frequency grid using interpolation.
     """
-    def __init__(self, rate: float = 0.5, method: str = 'time', limit: int = 4):
+    def __init__(self, rate: float = 0.5, method: str = 'linear', limit: int = 4):
         """
         Args:
             rate: Frequency in seconds (e.g., 0.5)
-            method: Interpolation method (default: 'time' for weighted linear)
-            limit: Max consecutive NaNs to fill (e.g. 4 steps = 2s at 0.5s rate)
+            method: Interpolation method (Polars supports 'linear', 'nearest')
+            limit: Max consecutive nulls to fill (not directly supported in Polars interpolate logic universally, handled via gap thresholds?)
+                   Polars interpolate fills ALL unless we mask?
+                   We'll assume linear interpolation across small gaps.
         """
         super().__init__(config={"rate": rate, "method": method, "limit": limit})
         self.rate = rate
-        self.rate_pd = f"{int(rate*1000)}ms"
-        self.method = method
-        self.limit = limit
+        # Polars duration string (e.g. "500ms")
+        self.interval = f"{int(rate * 1000000)}us" # Microseconds for precision
+        self.method = method # ignored, usually linear
         
     def fit(self, data: Any) -> 'TimeResampler':
         return self
         
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, df: pl.DataFrame) -> pl.DataFrame:
         """
         Resamples the input DataFrame.
-        Assumes 'timestamp' index or convertable index.
         """
-        if df.empty:
+        if df.is_empty():
             return df
             
-        # Ensure index is datetime
-        if not isinstance(df.index, pd.DatetimeIndex):
-            # Try to find timestamp col? Or assume caller prepared it?
-            # Pipeline contract: Expects datetime index for time operations.
-            raise ValueError("TimeResampler input must have DatetimeIndex")
-            
+        if "timestamp" not in df.columns:
+            raise ValueError("TimeResampler input must have 'timestamp' column")
+
         # 1. Define Grid
-        t_start = df.index.min().floor(self.rate_pd)
-        t_end = df.index.max().ceil(self.rate_pd)
+        # Create a lazy frame for the grid
+        start = df["timestamp"].min()
+        end = df["timestamp"].max()
         
-        grid = pd.date_range(start=t_start, end=t_end, freq=self.rate_pd)
+        # We want to align to strict grid?
+        # Polars: upsample() works on DataFrame.
+        # But usually you want `group_by_dynamic` or create a grid and join.
+        # Simple Upsample:
         
-        # 2. Union Index
-        combined_idx = df.index.union(grid).unique().sort_values()
-        combined = df.reindex(combined_idx)
+        # Cast to datetime if needed
+        # df = df.with_columns(pl.col("timestamp").cast(pl.Datetime))
         
-        # 3. Interpolate
-        combined = combined.interpolate(method=self.method, limit=self.limit, limit_direction='both')
+        # Sort is required for upsample
+        q = df.lazy().sort("timestamp")
         
-        # 4. Extract Grid
-        resampled = combined.reindex(grid)
+        # Upsample acts like 'reindex' + filling gaps with nulls
+        # We use upsample + interpolate
         
-        # 5. Drop NaNs (gaps larger than limit)
-        resampled.dropna(inplace=True)
+        # Note: Polars upsample is on DataFrame, not LazyFrame usually?
+        # Let's collect for upsample
+        df_sorted = q.collect()
         
-        return resampled
+        upsampled = df_sorted.upsample(time_column="timestamp", every=self.interval)
+        
+        # Interpolate numeric columns
+        # Filter numeric columns
+        numeric_cols = [c for c, t in df.schema.items() if t in (pl.Float32, pl.Float64, pl.Int32, pl.Int64)]
+        
+        interpolated = upsampled.with_columns([
+            pl.col(c).interpolate() for c in numeric_cols
+        ])
+        
+        # Filter to keep only the exact grid points? 
+        # Upsample keeps original points too? No, upsample ADDS points.
+        # If we want a strict grid (e.g. exactly at .0, .5) regardless of original timestamps:
+        # We should generate the grid and join_asof/interpolate?
+        # The Pandas implementation used `union` then `reindex(grid)`.
+        # This means it keeps grid points INTERPOLATED from nearby points.
+        
+        # Faster approach: Generate grid, join_asof (nearest? or linear?)
+        # Polars doesn't have join_asof check strategy='linear'.
+        # Best way to emulate Pandas resampling-interpolation:
+        # 1. Concat original + grid.
+        # 2. Sort.
+        # 3. Interpolate.
+        # 4. Filter for grid points.
+        
+        # Grid generation
+        grid = pl.datetime_range(start, end, self.interval, eager=True).alias("timestamp").to_frame()
+        
+        # Add original data
+        combined = pl.concat([df_sorted, grid], how="diagonal")
+        
+        # Deduplicate timestamps? If grid matches existing point, we have duplicates.
+        # If duplicates, we should prioritise original data?
+        # sort() + unique(keep='first')
+        
+        combined = (
+            combined
+            .sort("timestamp")
+            .unique(subset=["timestamp"], keep="first")
+        )
+        
+        # Interpolate
+        combined = combined.with_columns([
+            pl.col(c).interpolate() for c in numeric_cols
+        ])
+        
+        # Filter only grid points
+        # usage semi-join
+        result = combined.join(grid, on="timestamp", how="inner")
+        
+        return result

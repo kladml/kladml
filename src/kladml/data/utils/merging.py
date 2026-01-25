@@ -1,31 +1,28 @@
+
 """
 Script to merge CGM UM (Glucose only) and Hall (Glucose + Insulin + Covariates) datasets.
 
 Output:
     data/datasets/merged/
-        train.pkl
-        val.pkl
+        train.parquet
+        val.parquet
         metadata.json
 
 Schema:
-    List of dictionaries:
-    [
-        {
-            "glucose": np.array([...]),  # mg/dL
-            "insulin": np.array([...]),  # Units (0 if missing)
-            "id": "subject_id",
-            "source": "cgm_um" | "hall"
-        },
-        ...
-    ]
+    Parquet with columns:
+    - id (str)
+    - source (str)
+    - glucose (List[float32])
+    - insulin (List[float32])
 """
 
-import pandas as pd
+import polars as pl
 import numpy as np
 import joblib
 from pathlib import Path
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+import sys
 
 # Config
 OUTPUT_DIR = Path("data/datasets/merged_v1")
@@ -49,8 +46,8 @@ def process_cgm_um():
             continue
             
         processed.append({
-            "glucose": seq.astype(np.float32),
-            "insulin": np.zeros_like(seq, dtype=np.float32),  # No insulin data
+            "glucose": seq.astype(np.float32).tolist(),
+            "insulin": np.zeros(len(seq), dtype=np.float32).tolist(),  # No insulin data
             "id": f"um_{i}",
             "source": "cgm_um"
         })
@@ -66,35 +63,71 @@ def process_hall():
         print(f"❌ {path} not found")
         return []
         
-    # Read relevant columns
-    df = pd.read_csv(path, usecols=['id', 'time', 'gl', 'insulin'])
-    
-    # Convert time
-    # Hall time format usually: "2015-01-01 12:00:00"
-    # Or sometimes relative. Let's inspect.
-    # Assuming ordered by time per ID for now.
+    # Read relevant columns using Polars
+    # Schema: id, time, gl, insulin
+    try:
+        df = pl.read_csv(path, columns=['id', 'time', 'gl', 'insulin'])
+    except Exception as e:
+        print(f"Failed to read CSV: {e}")
+        return []
     
     processed = []
     
-    for subject_id, group in tqdm(df.groupby('id'), desc="Hall"):
-        # Sort by time just in case
-        # group = group.sort_values('time') 
+    # Group by ID
+    # Sort by time? Assuming numeric/ordered? Or convert time?
+    # If time is string, cast to datetime.
+    
+    # We'll iter over groups. Polars specific pattern: partition_by("id", as_dict=True)
+    # or df.group_by("id")
+    
+    # We sort by id then time first?
+    # Assuming standard CSV structure.
+    
+    # Sort entire DF usually faster than per group
+    # df = df.sort(["id", "time"]) # Need to parse time if string
+    
+    # Iterate groups
+    # Using partition_by is RAM heavy if many groups.
+    # Hall dataset isn't huge usually.
+    
+    # Efficient:
+    # 1. Fill nulls (clean)
+    # 2. Agg to lists
+    
+    grouped = (
+        df
+        .with_columns([
+            pl.col("gl").fill_null(strategy="forward").fill_null(strategy="backward").alias("gl"), # Interpolate support in aggregation?
+            pl.col("insulin").fill_null(0.0)
+        ])
+        .group_by("id")
+        .agg([
+            pl.col("gl"),
+            pl.col("insulin"),
+            pl.col("source").first().alias("source") if "source" in df.columns else pl.lit("hall").alias("source")
+        ])
+    )
+    
+    # Convert to list of dicts or just keep DF?
+    # We can mix with cgm_um.
+    # CGM UM is list of dicts.
+    
+    # Iterate rows
+    for row in tqdm(grouped.iter_rows(named=True), desc="Hall", total=len(grouped)):
+        gl = row['gl']
+        ins = row['insulin']
+        sid = str(row['id'])
         
-        # Get values
-        gl = group['gl'].values
-        ins = group['insulin'].fillna(0).values
-        
-        # Handle NaN glucose
-        # Linear interpolation
-        gl = pd.Series(gl).interpolate(limit_direction='both').values
-        
+        # Check length
         if len(gl) < 60:
             continue
             
+        # Ensure float32 lists
+        # Polars handles this usually, but to match exactly
         processed.append({
-            "glucose": gl.astype(np.float32),
-            "insulin": ins.astype(np.float32),
-            "id": str(subject_id),
+            "glucose": [float(x) for x in gl],
+            "insulin": [float(x) for x in ins],
+            "id": sid,
             "source": "hall"
         })
         
@@ -111,13 +144,22 @@ def main():
     print(f"  - CGM UM: {len(um_data)}")
     print(f"  - Hall: {len(hall_data)}")
     
+    if not all_data:
+        print("No data found.")
+        return
+
     # 2. Split Train/Val
     train_data, val_data = train_test_split(all_data, test_size=0.1, random_state=42, shuffle=True)
     
-    # 3. Save
+    # 3. Save as Parquet
     print(f"\nSaving to {OUTPUT_DIR}...")
-    joblib.dump(train_data, OUTPUT_DIR / "train.pkl")
-    joblib.dump(val_data, OUTPUT_DIR / "val.pkl")
+    
+    # Create DataFrames
+    df_train = pl.DataFrame(train_data)
+    df_val = pl.DataFrame(val_data)
+    
+    df_train.write_parquet(OUTPUT_DIR / "train.parquet")
+    df_val.write_parquet(OUTPUT_DIR / "val.parquet")
     
     # 4. Save metadata
     import json
@@ -135,4 +177,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ImportError:
+        print("Polars required. pip install polars")
