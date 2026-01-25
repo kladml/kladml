@@ -71,13 +71,18 @@ kladml train --config data/configs/my_config.yaml
 
 ---
 
-## Supported Data Types
+## Built-in Baselines
 
-| Data Type | Pipeline |
-|-----------|----------|
-| **TABULAR** | XGBoost |
-| **TIMESERIES** | Transformer/Gluformer |
-| **IMAGE** | ResNet50 (Coming Soon) |
+KladML is designed to work with **any custom model** (PyTorch, Scikit-learn, etc.).
+For convenience, we provide these reference implementations out-of-the-box:
+
+| Domain | Reference Model |
+|--------|-----------------|
+| **Tabular** | XGBoost  (Coming Soon) |
+| **Time Series** | Transformers |
+| **Computer Vision** | ResNet / ViT (Coming Soon) |
+| **TEXT** | CSV with text columns | BERT (Coming Soon) |
+
 
 ---
 

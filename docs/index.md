@@ -47,10 +47,10 @@ kladml quickstart --data my_data.csv
 
 | Data Type | Auto-Detection | Default Pipeline |
 |-----------|----------------|------------------|
-| **TABULAR** | Numeric CSV/Parquet | XGBoost |
-| **TIMESERIES** | Has datetime column | Transformer/Gluformer |
+| **TABULAR** | Numeric CSV/Parquet | XGBoost  (Coming Soon)|
+| **TIMESERIES** | Has datetime column | Transformer |
 | **IMAGE** | Folder with JPG/PNG | ResNet50 |
-| **TEXT** | CSV with text columns | BERT |
+| **TEXT** | CSV with text columns | BERT (Coming Soon) |
 
 ## Why KladML?
 
