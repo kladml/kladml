@@ -36,3 +36,7 @@ torchmetrics>=1.0.0
 # Development
 pytest>=7.0
 pytest-cov>=4.0
+
+# Tuning
+optuna>=3.0.0
+optuna-dashboard>=0.10.0
