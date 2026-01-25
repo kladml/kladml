@@ -29,7 +29,7 @@ class KladMLSettings(BaseSettings):
     
     # Path Configuration
     database_url: str | None = Field(default=None, description="Database connection string")
-    artifacts_dir: str = Field(default="./kladml_data", description="Local artifacts directory")
+    artifacts_dir: str = Field(default="./data", description="Local artifacts directory")
 
     
     # Compute Configuration
