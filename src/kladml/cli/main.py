@@ -43,6 +43,9 @@ app.add_typer(train.app, name="train", help="Train models")
 app.add_typer(run.app, name="run", help="Run scripts and manage runs")
 app.add_typer(data.app, name="data", help="Inspect and analyze datasets")
 
+from kladml.cli.commands import config
+app.add_typer(config.app, name="config", help="Configuration utilities")
+
 # New Commands (v0.6.0)
 app.add_typer(registry.app, name="registry", help="Manage artifact registry")
 app.add_typer(export.app, name="export", help="Export models (ONNX, TorchScript)")

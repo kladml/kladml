@@ -38,6 +38,8 @@ def run_local(
         
     # Validation via Tracker
     if experiment:
+        from kladml.backends import get_tracker_backend
+        tracker = get_tracker_backend()
         if not tracker.get_experiment_by_name(experiment):
              # Just a warning, container might create it
              console.print(f"[yellow]Note: Experiment '{experiment}' does not exist yet locally.[/yellow]")
@@ -183,6 +185,8 @@ def run_native(
         raise typer.Exit(code=1)
     
     # Ensure experiment exists via Tracker
+    from kladml.backends import get_tracker_backend
+    tracker = get_tracker_backend()
     exp_id = tracker.create_experiment(experiment)
     
     console.print(Panel.fit(
