@@ -81,7 +81,7 @@ For convenience, we provide these reference implementations out-of-the-box:
 | **Tabular** | XGBoost  (Coming Soon) |
 | **Time Series** | Transformers |
 | **Computer Vision** | ResNet / ViT (Coming Soon) |
-| **TEXT** | CSV with text columns | BERT (Coming Soon) |
+| **TEXT** | BERT (Coming Soon) |
 
 
 ---
