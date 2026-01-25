@@ -15,7 +15,7 @@ When `train()` completes (or finds a best model), it creates:
 You can export any existing checkpoint using the CLI:
 
 ```bash
-kladml models export \
+kladml export \
     --checkpoint ./data/projects/my_project/experiments/exp1/run_id/checkpoints/best_model.pth \
     --output ./deployment/model.pt \
     --config ./data/projects/my_project/experiments/exp1/run_id/config.yaml

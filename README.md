@@ -184,7 +184,7 @@ kladml data summary <dir>     # Summary of datasets in directory
 kladml data convert ...       # Convert PKL -> HDF5
 
 # Models
-kladml models export ...      # Export to TorchScript
+kladml export ...      # Export to ONNX
 
 # Organization
 kladml project list           # List all projects
