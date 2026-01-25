@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2026-01-26
+### Added
+- **Core:** Included `inspection.py` and `probabilistic.py` missed in v0.13.0.
+- **Utils:** Smart config generator now fully supported with inspection utilities.
+- **Metrics:** Probabilistic evaluation metrics (NLL, MSE) officially part of core.
+
 ## [0.13.0] - 2026-01-26
 ### Added
 - **Gluformer Integration:** Full lifecycle support (Train, Predict, Export) via `UniversalTrainer`.
