@@ -29,12 +29,12 @@ class RegressionEvaluator(BaseEvaluator):
              try:
                 return torch.jit.load(str(self.model_path))
              except:
-                return torch.load(self.model_path)
+                return torch.load(self.model_path, weights_only=False)
          return None
 
     def load_data(self) -> Any:
          if self.data_path.suffix == '.pt':
-             return torch.load(self.data_path)
+             return torch.load(self.data_path, weights_only=False)
          return None
 
     def inference(self, model: Any, data: Any) -> tuple[torch.Tensor, torch.Tensor]:
