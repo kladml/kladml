@@ -5,7 +5,7 @@ import torch.nn as nn
 # Reuse Gluformer components for robustness
 
 from kladml.models.timeseries.transformer.gluformer.components.encoder import EncoderLayer, Encoder
-from kladml.models.timeseries.transformer.gluformer.components.attention import MultiheadAttention
+from kladml.models.layers.attention import MultiheadAttention
 
 class CanBusTransformer(nn.Module):
     """

@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 
 from kladml.models.timeseries.transformer.gluformer.components.embed import DataEmbedding
-from kladml.models.timeseries.transformer.gluformer.components.attention import MultiheadAttention
+from kladml.models.layers.attention import MultiheadAttention
 from kladml.models.timeseries.transformer.gluformer.components.encoder import EncoderLayer, Encoder, ConvLayer
 from kladml.models.timeseries.transformer.gluformer.components.decoder import DecoderLayer, Decoder
 

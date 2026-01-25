@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .attention import *
+
 
 class ConvLayer(nn.Module):
   def __init__(self, d_model):

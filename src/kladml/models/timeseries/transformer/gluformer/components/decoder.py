@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .attention import *
+
 
 class DecoderLayer(nn.Module):
   def __init__(self, self_att, cross_att, d_model, d_fcn,

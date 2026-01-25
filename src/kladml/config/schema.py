@@ -23,6 +23,7 @@ class TrainingConfig(BaseModel):
     mixed_precision: Literal["no", "fp16", "bf16"] = Field(default="no", description="Mixed precision mode")
     gradient_accumulation_steps: int = Field(default=1, ge=1, description="Number of steps to accumulate gradients")
     gradient_clipping: float = Field(default=1.0, ge=0.0, description="Max gradient norm for clipping")
+    compile: bool = Field(default=False, description="Enable torch.compile() for speedup (PyTorch 2.0+)")
     
     default_root_dir: str | None = Field(default=None, description="Default root directory for logs/checkpoints")
 
