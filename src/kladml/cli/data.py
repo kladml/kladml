@@ -364,7 +364,7 @@ def convert_dataset(
         raise typer.Exit(code=1)
 
 from kladml.cli.process import run_pipeline
-app.command("process", help="Run a data processing pipeline defined in YAML. Example: kladml data process -i data/raw/logs -p pipe.yaml")(run_pipeline)
+app.command("process", help="Run a data processing pipeline defined in YAML. Example: kladml data process -i data/datasets/canbus/ -p pipe.yaml")(run_pipeline)
 
 
 if __name__ == "__main__":
