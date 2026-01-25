@@ -1,8 +1,11 @@
 
 import polars as pl
 from typing import Any
-from ..pipeline import PipelineComponent
+from ..pipeline import PipelineComponent, register_component
 
+from ..pipeline import PipelineComponent, register_component
+
+@register_component("TimeResampler")
 class TimeResampler(PipelineComponent):
     """
     Resamples time-series data to a fixed frequency grid using interpolation.
