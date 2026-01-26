@@ -34,8 +34,8 @@ dependencies = [
 
 [project.optional-dependencies]
 train = [
-    "torch>=2.0.0",
-    "numpy>=1.21.0",
+    "torch>=2.5.1",
+    "numpy>=2.4.1",
     "onnx>=1.14.0",
     "onnxruntime>=1.15.0",
     "h5py>=3.0.0",

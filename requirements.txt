@@ -1,8 +1,8 @@
 # KladML SDK Requirements
 # Core dependencies
-numpy>=1.21.0
+numpy>=2.4.1
 pyyaml>=6.0
-torch>=2.0.0
+torch>=2.5.1
 
 # Data Engineering
 polars>=0.19.0
