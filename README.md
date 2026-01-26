@@ -46,6 +46,12 @@ pip install "kladml[train]"
 
 # Full Suite (Tracking + TUI + Dev)
 pip install "kladml[all]"
+
+# For Developers (Recommended)
+# Use the provided environment.yml for a reproducible GPU setup
+mamba env create -f environment.yml
+mamba activate kladml
+pip install -e .
 ```
 
 ---
