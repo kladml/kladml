@@ -16,11 +16,18 @@ Please adhere to our Code of Conduct in all interactions with the community.
     ```
 3.  **Set up the development environment**:
     ```bash
-    # Create a virtual environment
-    python -m venv .venv
-    source .venv/bin/activate  # on Windows: .venv\Scripts\activate
+    # Create the environment using Mamba (Recommended for GPU support)
+    mamba env create -f environment.yml
+    mamba activate kladml
 
-    # Install dev dependencies
+    # Install in editable mode
+    pip install -e .
+    ```
+
+    Alternatively, using standard virtualenv (CPU-only or manual CUDA setup):
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
     pip install -e ".[dev]"
     ```
 
