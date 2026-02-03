@@ -79,7 +79,13 @@ class UniversalTrainer:
         # 1. Prepare Model & Optimizers
         # We need to call configure_optimizers explicitly before prepare
         if hasattr(model, "configure_optimizers"):
-            self.optimizer = model.configure_optimizers()
+            optim_conf = model.configure_optimizers()
+            if isinstance(optim_conf, dict):
+                self.optimizer = optim_conf["optimizer"]
+                self.lr_scheduler_config = optim_conf.get("lr_scheduler")
+            else:
+                self.optimizer = optim_conf
+                self.lr_scheduler_config = None
         else:
             raise AttributeError("Model must implement configure_optimizers()")
             
@@ -123,6 +129,15 @@ class UniversalTrainer:
             self.callbacks.on_train_begin()
         
         # 3. Training Loop
+        # 3. Training Loop
+        # Init Trackers (MLFlow etc)
+        if self.accelerator.is_main_process:
+            self.accelerator.init_trackers(
+                project_name=self.config.project_name, 
+                config=self.config.model_dump() if hasattr(self.config, "model_dump") else (self.config.dict() if hasattr(self.config, "dict") else {}),
+                init_kwargs={"mlflow": {"run_name": self.config.run_name}} if self.config.run_name else None
+            )
+
         try:
             for epoch in range(self.max_epochs):
                 self.current_epoch = epoch
@@ -148,23 +163,7 @@ class UniversalTrainer:
                         # Step
                         if hasattr(model, "module"): # Handle DDP wrapper for access to methods?
                             # Accelerate wraps model. If model has custom 'training_step', we might need to unwrap or call forward.
-                            # Standard pattern: model(batch) or custom call.
-                            # If `training_step` is defined on the LightningModule-like user model:
-                            # We can try calling it. But `model` is now `DistributedDataParallel` or similar.
-                            # `model.forward` typically works. 
-                            # Safe bet: `loss = model(batch)` if forward returns loss? 
-                            # Or unwrap for custom methods? Unwrapping removes gradients/sync logic context sometimes.
-                            # Best practice: User model `forward` should return loss OR output suitable for loss.
-                            # Existing KladML assumes `training_step`.
-                            # DDP wrapper usually delegates method calls if they don't conflict. 
-                            # But if not, we use `self.accelerator.unwrap_model(model)`? No, that's for saving.
                             pass
-                        
-                        # We try calling training_step directly. If wrapped, DDP in PT<1.10 didn't forward unknown methods.
-                        # Accelerate wraps in standard DDP.
-                        # Let's assume standard `forward` execution if `training_step` fails, or we assume `forward` IS usage.
-                        # For KladML backward compact: `training_step` was used.
-                        # Let's try to call it.
                         
                         try:
                             step_output = model.training_step(batch, batch_idx)
@@ -212,8 +211,6 @@ class UniversalTrainer:
                         optimizer.zero_grad()
                     
                     # Logging (Gather loss across processes for reporting?? or just log local)
-                    # For progress bars, usually local loss is fine or gather.
-                    # accelerator.gather(loss) returns tensor of all losses.
                     avg_loss_batch = self.accelerator.gather(loss).mean().item()
                     
                     train_loss_acc += avg_loss_batch
@@ -236,9 +233,29 @@ class UniversalTrainer:
                 # Wait for everyone before logging epoch end
                 self.accelerator.wait_for_everyone()
                 
+                # Call Model Hook (to allow metric computation/injection)
+                if hasattr(model, "on_epoch_end"):
+                    model.on_epoch_end(epoch, metrics)
+                if hasattr(model, "module") and hasattr(model.module, "on_epoch_end"):
+                    model.module.on_epoch_end(epoch, metrics)
+
                 if self.accelerator.is_main_process:
                     self.callbacks.on_epoch_end(epoch, metrics)
                     logger.info(f"Epoch {epoch}: {metrics}")
+                    # Log to MLflow/Trackers
+                    self.accelerator.log(metrics, step=epoch)
+                
+                # Step Scheduler
+                if self.lr_scheduler_config:
+                    scheduler = self.lr_scheduler_config["scheduler"]
+                    monitor = self.lr_scheduler_config.get("monitor")
+                    if monitor:
+                        # Validation loss usually available in metrics
+                        val_monitor = metrics.get(monitor)
+                        if val_monitor is not None:
+                             scheduler.step(val_monitor)
+                    else:
+                        scheduler.step()
                 
         except KeyboardInterrupt:
             logger.warning("Training interrupted by user.")
@@ -249,6 +266,7 @@ class UniversalTrainer:
             self.accelerator.wait_for_everyone()
             if self.accelerator.is_main_process:
                 self.callbacks.on_train_end()
+                self.accelerator.end_training()
             
         return metrics
 
@@ -257,7 +275,7 @@ class UniversalTrainer:
             model.eval()
         elif hasattr(model, "model") and isinstance(model.model, torch.nn.Module):
             model.model.eval()
-        val_loss_acc = 0.0
+        metrics_acc = {}
         num_batches = 0
         
         with torch.no_grad():
@@ -265,17 +283,10 @@ class UniversalTrainer:
                 # No move_to_device needed, Accelerate handles it
                 
                 # Validation Step
-                # Handle DDP wrapper
-                # Validation Step
-                # Handle DDP wrapper
                 if isinstance(model, torch.nn.Module):
-                    unwrapped = self.accelerator.unwrap_model(model)
-                else:
-                    unwrapped = model
-                # Actually, running validation on DDP model is fine/better for sync BN?
-                # But `validation_step` access might be tricky.
-                # Just assume call works via getattr or module.
-                
+                    #unwrap if needed for attribute access, but call model() directly for DDP
+                    pass 
+
                 # Simple dispatch
                 if hasattr(model, "validation_step"):
                      step_output = model.validation_step(batch, batch_idx)
@@ -287,17 +298,23 @@ class UniversalTrainer:
                      loss = torch.nn.functional.mse_loss(y_hat, y) # Default fallback
                      step_output = {"val_loss": loss}
 
-                if isinstance(step_output, dict):
-                   loss = step_output.get("val_loss", step_output.get("loss"))
-                else:
-                   loss = step_output
+                # Normalize to dict
+                if not isinstance(step_output, dict):
+                   step_output = {"val_loss": step_output}
                 
-                # Gather loss from all devices to compute true average
-                gathered_losses = self.accelerator.gather(loss)
-                val_loss_acc += gathered_losses.mean().item()
+                # Aggregate
+                for k, v in step_output.items():
+                    # Gather from all devices
+                    gathered = self.accelerator.gather(v)
+                    # Average
+                    val = gathered.mean().item()
+                    metrics_acc[k] = metrics_acc.get(k, 0.0) + val
+                
                 num_batches += 1
         
-        return {"val_loss": val_loss_acc / max(1, num_batches)}
+        # Average over batches
+        final_metrics = {k: v / max(1, num_batches) for k, v in metrics_acc.items()}
+        return final_metrics
 
     def save_checkpoint(self, path: str):
         """Save state via Accelerate."""

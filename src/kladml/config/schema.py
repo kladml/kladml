@@ -6,7 +6,7 @@ class TrainingConfig(BaseModel):
     """
     Configuration for the UniversalTrainer.
     """
-    model_config = ConfigDict(extra="forbid") # Strict config validation
+    model_config = ConfigDict(extra="ignore") # Allow extra model params to be passed but ignored
 
     max_epochs: int = Field(default=10, ge=1, description="Maximum number of epochs to train")
     accelerator: Literal["auto", "cpu", "gpu", "cuda", "mps"] = Field(
@@ -25,6 +25,10 @@ class TrainingConfig(BaseModel):
     gradient_clipping: float = Field(default=1.0, ge=0.0, description="Max gradient norm for clipping")
     compile: bool = Field(default=False, description="Enable torch.compile() for speedup (PyTorch 2.0+)")
     
+    # Tracking
+    project_name: str = Field(default="kladml_project", description="Project name for experiment tracking (MLFlow, etc)")
+    run_name: str | None = Field(default=None, description="Specific name for this run")
+
     default_root_dir: str | None = Field(default=None, description="Default root directory for logs/checkpoints")
 
 class ModelConfig(BaseModel):
