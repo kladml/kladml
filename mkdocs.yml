@@ -32,6 +32,7 @@ nav:
   - Getting Started: getting_started.md
   - Core Concepts: core_concepts.md
   - Architecture: architecture.md
+  - Evaluation: evaluation.md
   - CLI Reference: cli.md
   - Roadmap: roadmap.md
 
