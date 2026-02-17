@@ -1,10 +1,38 @@
 
 import pytest
+import os
+import importlib
 from typer.testing import CliRunner
 from unittest.mock import patch, MagicMock
 from kladml.cli.commands.train.core import app
 
 runner = CliRunner()
+
+@pytest.fixture(autouse=True)
+def setup_test_env(tmp_path):
+    """Setup environment for train tests."""
+    # Set environment variables before importing kladml modules
+    db_path = tmp_path / "train_test.db"
+    os.environ["KLADML_DATABASE_URL"] = f"sqlite:///{db_path}"
+    os.environ["KLADML_MLFLOW_TRACKING_URI"] = f"sqlite:///{tmp_path}/mlflow.db"
+
+    # Reload settings to pick up new env vars
+    import kladml.config.settings
+    importlib.reload(kladml.config.settings)
+
+    # Reset DB session globals
+    import kladml.db.session
+    kladml.db.session._engine = None
+    kladml.db.session._session_factory = None
+    importlib.reload(kladml.db.session)
+
+    yield
+
+    # Cleanup
+    if "KLADML_DATABASE_URL" in os.environ:
+        del os.environ["KLADML_DATABASE_URL"]
+    if "KLADML_MLFLOW_TRACKING_URI" in os.environ:
+        del os.environ["KLADML_MLFLOW_TRACKING_URI"]
 
 @pytest.fixture
 def mock_trainer():
