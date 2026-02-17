@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 from pathlib import Path
 import torch
 
-from kladml.cli.evaluate import app
+from kladml.cli.main import app
 
 runner = CliRunner()
 
@@ -47,7 +47,7 @@ def dummy_data_path(tmp_path):
 
 def test_evaluate_help():
     """Test that --help works."""
-    result = runner.invoke(app, ["--help"])
+    result = runner.invoke(app, ["eval", "--help"])
     assert result.exit_code == 0
     assert "evaluation" in result.stdout.lower() or "evaluate" in result.stdout.lower()
 
@@ -64,7 +64,7 @@ def test_evaluate_with_explicit_task(
     result = runner.invoke(
         app,
         [
-            "run",
+            "eval", "run",
             "--run-id",
             "test_run_001",
             "--model",
@@ -77,6 +77,14 @@ def test_evaluate_with_explicit_task(
             str(output_dir),
         ],
     )
+
+    # Debug: print result if failed
+    if result.exit_code != 0:
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        if result.exception:
+            import traceback
+            traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
 
     # Check registry was queried
     mock_evaluator_registry.get_evaluator.assert_called_once()
@@ -94,7 +102,7 @@ def test_evaluate_regression_task(
     result = runner.invoke(
         app,
         [
-            "run",
+            "eval", "run",
             "--run-id",
             "test_regression",
             "--model",
@@ -107,6 +115,14 @@ def test_evaluate_regression_task(
             str(output_dir),
         ],
     )
+
+    # Debug: print result if failed
+    if result.exit_code != 0:
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        if result.exception:
+            import traceback
+            traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
 
     mock_evaluator_registry.get_evaluator.assert_called_once()
 
@@ -123,7 +139,7 @@ def test_evaluate_timeseries_task(
     result = runner.invoke(
         app,
         [
-            "run",
+            "eval", "run",
             "--run-id",
             "test_timeseries",
             "--model",
@@ -137,6 +153,14 @@ def test_evaluate_timeseries_task(
         ],
     )
 
+    # Debug: print result if failed
+    if result.exit_code != 0:
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        if result.exception:
+            import traceback
+            traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
+
     mock_evaluator_registry.get_evaluator.assert_called_once()
 
 
@@ -147,7 +171,7 @@ def test_evaluate_invalid_task(mock_evaluator_registry, dummy_model_path, dummy_
     result = runner.invoke(
         app,
         [
-            "run",
+            "eval", "run",
             "--run-id",
             "test_invalid",
             "--model",
@@ -166,7 +190,7 @@ def test_evaluate_invalid_task(mock_evaluator_registry, dummy_model_path, dummy_
 
 def test_evaluate_missing_required_args():
     """Test that missing required args fails."""
-    result = runner.invoke(app, ["run"])
+    result = runner.invoke(app, ["eval", "run"])
     assert result.exit_code != 0
 
 
@@ -182,7 +206,7 @@ def test_evaluate_auto_detect_task(
     result = runner.invoke(
         app,
         [
-            "run",
+            "eval", "run",
             "--run-id",
             "test_auto",
             "--model",
@@ -193,6 +217,14 @@ def test_evaluate_auto_detect_task(
             str(output_dir),
         ],
     )
+
+    # Debug: print result if failed
+    if result.exit_code != 0:
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        if result.exception:
+            import traceback
+            traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
 
     # Without --task, should default to classification
     mock_evaluator_registry.get_evaluator.assert_called_once()

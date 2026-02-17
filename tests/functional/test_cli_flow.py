@@ -63,8 +63,6 @@ def setup_cli_env():
     kladml.db.session._session_factory = None
     importlib.reload(kladml.db.session)
 
-    from kladml.db.session import reset_db, init_db
-
     # Reset DB
     try:
         reset_db()

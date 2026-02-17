@@ -1,5 +1,6 @@
 
 import pytest
+import os
 import yaml
 import torch
 from pathlib import Path
@@ -7,6 +8,34 @@ from typer.testing import CliRunner
 from kladml.cli.main import app
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def setup_tune_env(tmp_path):
+    """Setup environment for tuning tests."""
+    # Set environment variables before importing kladml modules
+    db_path = tmp_path / "tune_test.db"
+    os.environ["KLADML_DATABASE_URL"] = f"sqlite:///{db_path}"
+    os.environ["KLADML_MLFLOW_TRACKING_URI"] = f"sqlite:///{tmp_path}/mlflow.db"
+
+    # Reload settings to pick up new env vars
+    import importlib
+    import kladml.config.settings
+    importlib.reload(kladml.config.settings)
+
+    # Reset DB session globals
+    import kladml.db.session
+    kladml.db.session._engine = None
+    kladml.db.session._session_factory = None
+    importlib.reload(kladml.db.session)
+
+    yield
+
+    # Cleanup
+    if "KLADML_DATABASE_URL" in os.environ:
+        del os.environ["KLADML_DATABASE_URL"]
+    if "KLADML_MLFLOW_TRACKING_URI" in os.environ:
+        del os.environ["KLADML_MLFLOW_TRACKING_URI"]
 
 # 1. Create Dummy Model File
 DUMMY_MODEL_CODE = """
