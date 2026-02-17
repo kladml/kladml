@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Checkpoint:** CheckpointManager now saves task type in metadata.json when model has `ml_task` property.
 - **Export:** ScalerWrapper module for embedding sklearn scalers in TorchScript exports.
 - **Export:** `--embed-scaler` CLI flag to include normalization in exported models.
+- **Docs:** Added comprehensive docstrings to `db/models.py`, `exporters/__init__.py`, and `tui/__init__.py`.
 
 ### Changed
 - **CLI:** `evaluate` command now auto-detects task from model or checkpoint metadata instead of defaulting to classification.
