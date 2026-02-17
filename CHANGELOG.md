@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Evaluation:** TimeSeriesEvaluator for forecasting tasks with metrics (MAE, MSE, RMSE, MAPE, R2) and plots.
 - **Evaluation:** Registered RegressionEvaluator in EvaluatorRegistry (was implemented but not registered).
+- **Tests:** CLI tests for evaluate command.
 
 ## [0.13.1] - 2026-01-26
 ### Added
