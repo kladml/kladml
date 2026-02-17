@@ -6,10 +6,10 @@ import pytest
 import os
 import shutil
 import tempfile
+import importlib
 from pathlib import Path
 from typer.testing import CliRunner
 from kladml.cli.main import app
-from kladml.db.session import reset_db, init_db
 
 # Mock model content for training test
 DUMMY_MODEL_CONTENT = """
@@ -40,37 +40,51 @@ def runner():
 @pytest.fixture(autouse=True)
 def setup_cli_env():
     """Setup temp workspace for CLI tests."""
-    # Force reset globals in session module just in case
-    import kladml.db.session
-    kladml.db.session._engine = None
-    kladml.db.session._session_factory = None
+    from kladml.config.settings import settings
+    from kladml.db.session import reset_db, init_db
 
     # Create temp dir for execution
     cwd = os.getcwd()
     temp_dir = tempfile.mkdtemp()
     os.chdir(temp_dir)
-    
-    # Setup DB path
+
+    # Store original settings
+    original_db_url = settings.database_url
+    original_mlflow_uri = settings.mlflow_tracking_uri
+
+    # Setup DB URL (use correct env var name: KLADML_DATABASE_URL)
     db_path = Path(temp_dir) / "test_cli.db"
-    os.environ["KLADML_DB_PATH"] = str(db_path)
-    
+    settings.database_url = f"sqlite:///{db_path}"
+
     # Setup MLflow path to avoid polluting user's ./mlruns
-    os.environ["MLFLOW_TRACKING_URI"] = f"sqlite:///{temp_dir}/mlflow.db"
-    
+    settings.mlflow_tracking_uri = f"sqlite:///{temp_dir}/mlflow.db"
+
+    # Reset DB engine globals
+    import kladml.db.session
+    kladml.db.session._engine = None
+    kladml.db.session._session_factory = None
+
     # Reset DB
     try:
         reset_db()
         init_db()
-    except:
+    except Exception:
         pass
-        
+
     yield temp_dir
-    
+
     # Cleanup
     os.chdir(cwd)
+
+    # Restore original settings
+    settings.database_url = original_db_url
+    settings.mlflow_tracking_uri = original_mlflow_uri
+
+    # Reset session module globals
+    kladml.db.session._engine = None
+    kladml.db.session._session_factory = None
+
     shutil.rmtree(temp_dir)
-    if "KLADML_DB_PATH" in os.environ:
-        del os.environ["KLADML_DB_PATH"]
 
 
 def test_project_lifecycle(runner, setup_cli_env):
