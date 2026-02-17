@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **ModelRegistry:** New registry for automatic architecture discovery with `ModelRegistry.register()`, `ModelRegistry.get()`, `ModelRegistry.list()`, and `ModelRegistry.list_by_task()` methods.
 - **Evaluation:** TimeSeriesEvaluator for forecasting tasks with metrics (MAE, MSE, RMSE, MAPE, R2) and 4 diagnostic plots (line, scatter, residuals over time, error distribution).
 - **Evaluation:** Registered RegressionEvaluator in EvaluatorRegistry (was implemented but not registered).
 - **Evaluation:** Registered TimeSeriesEvaluator in EvaluatorRegistry for `MLTask.TIMESERIES_FORECASTING`.
