@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tests:** CLI tests for evaluate command with coverage for classification, regression, and timeseries tasks.
 - **Docs:** New `evaluation.md` documentation page with evaluator usage guide and custom evaluator examples.
 - **Docs:** Added evaluation documentation to mkdocs navigation.
+- **Utils:** `detect_ml_task()` utility function for auto-detecting ML task from model or checkpoint metadata.
+- **Checkpoint:** CheckpointManager now saves task type in metadata.json when model has `ml_task` property.
+
+### Changed
+- **CLI:** `evaluate` command now auto-detects task from model or checkpoint metadata instead of defaulting to classification.
 
 ## [0.13.1] - 2026-01-26
 ### Added
