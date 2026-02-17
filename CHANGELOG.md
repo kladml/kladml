@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Exporters:** ONNX exporter now supports optional scaler embedding via `ONNXScalerWrapper` for end-to-end inference pipelines.
 
+### Fixed
+- **Tests:** Functional CLI tests now correctly patch settings for database isolation instead of using incorrect environment variable names.
+
 ## [0.13.1] - 2026-01-26
 ### Added
 - **Core:** Included `inspection.py` and `probabilistic.py` missed in v0.13.0.
