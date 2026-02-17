@@ -1,9 +1,11 @@
 
+import pytest
 import torch
+import numpy as np
 from kladml.interfaces.exporter import ExporterInterface
 from kladml.exporters.registry import ExporterRegistry
 from kladml.exporters.torchscript import TorchScriptExporter
-from kladml.exporters.onnx import ONNXExporter
+from kladml.exporters.onnx import ONNXExporter, ONNXScalerWrapper
 
 class DummyModel(torch.nn.Module):
     def forward(self, x):
@@ -35,9 +37,103 @@ def test_onnx_export(tmp_path):
     model.eval()
     output = tmp_path / "model.onnx"
     dummy_input = torch.randn(1, 10)
-    
+
     exporter = ONNXExporter()
     exporter.export(model, str(output), input_sample=dummy_input)
-    
+
     assert output.exists()
     # Validate might fail if ONNX runtime not installed, but checking file existence is decent
+
+
+def test_onnx_scaler_wrapper_standard_scaler():
+    """Test ONNXScalerWrapper with StandardScaler-like object."""
+    from sklearn.preprocessing import StandardScaler
+
+    model = DummyModel()
+    model.eval()
+
+    # Create and fit a scaler
+    scaler = StandardScaler()
+    train_data = np.random.randn(100, 10)
+    scaler.fit(train_data)
+
+    # Create wrapper
+    wrapper = ONNXScalerWrapper(model, scaler)
+
+    # Test that wrapper applies scaling
+    test_input = torch.randn(1, 10)
+    with torch.no_grad():
+        # Expected: (test_input - mean) / scale * 2
+        expected = (test_input.numpy() - scaler.mean_) / scaler.scale_ * 2
+        actual = wrapper(test_input).numpy()
+
+    np.testing.assert_allclose(actual, expected, rtol=1e-5)
+
+
+def test_onnx_scaler_wrapper_minmax_scaler():
+    """Test ONNXScalerWrapper with MinMaxScaler-like object."""
+    from sklearn.preprocessing import MinMaxScaler
+
+    model = DummyModel()
+    model.eval()
+
+    # Create and fit a scaler
+    scaler = MinMaxScaler()
+    train_data = np.random.randn(100, 10)
+    scaler.fit(train_data)
+
+    # Create wrapper
+    wrapper = ONNXScalerWrapper(model, scaler)
+
+    # Test that wrapper applies scaling
+    test_input = torch.randn(1, 10)
+    with torch.no_grad():
+        # Expected: (test_input - min) / scale * 2
+        expected = (test_input.numpy() - scaler.min_) / scaler.scale_ * 2
+        actual = wrapper(test_input).numpy()
+
+    np.testing.assert_allclose(actual, expected, rtol=1e-5)
+
+
+def test_onnx_scaler_wrapper_unsupported():
+    """Test ONNXScalerWrapper raises error for unsupported scaler types."""
+    model = DummyModel()
+
+    class UnsupportedScaler:
+        pass
+
+    with pytest.raises(ValueError, match="Unsupported scaler type"):
+        ONNXScalerWrapper(model, UnsupportedScaler())
+
+
+def test_onnx_export_with_scaler(tmp_path):
+    """Test ONNX export with scaler embedding."""
+    from sklearn.preprocessing import StandardScaler
+
+    model = DummyModel()
+    model.eval()
+
+    # Create and fit a scaler
+    scaler = StandardScaler()
+    train_data = np.random.randn(100, 10)
+    scaler.fit(train_data)
+
+    output = tmp_path / "model_with_scaler.onnx"
+    dummy_input = torch.randn(1, 10)
+
+    exporter = ONNXExporter()
+    exporter.export(model, str(output), input_sample=dummy_input, scaler=scaler)
+
+    assert output.exists()
+
+    # Validate the exported model
+    assert exporter.validate(str(output), dummy_input)
+
+
+def test_onnx_export_without_input_sample_raises():
+    """Test that ONNX export raises error without input_sample."""
+    model = DummyModel()
+    exporter = ONNXExporter()
+
+    with pytest.raises(ValueError, match="ONNX export requires an input sample"):
+        exporter.export(model, "output.onnx")
