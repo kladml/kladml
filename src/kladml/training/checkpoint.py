@@ -95,7 +95,7 @@ class CheckpointManager:
             except Exception as e:
                 logger.warning(f"Could not load metadata: {e}")
     
-    def _save_metadata(self) -> None:
+    def _save_metadata(self, task: Optional[str] = None) -> None:
         """Save metadata to disk."""
         meta = {
             "project": self.project_name,
@@ -104,6 +104,8 @@ class CheckpointManager:
             "best_epoch": self._best_epoch,
             "updated_at": datetime.now().isoformat(),
         }
+        if task:
+            meta["task"] = task
         with open(self._metadata_path, "w") as f:
             json.dump(meta, f, indent=2)
     
@@ -199,7 +201,16 @@ class CheckpointManager:
             torch.save(checkpoint, best_path)
             self._best_metric = current_metric
             self._best_epoch = epoch
-            self._save_metadata()
+
+            # Extract task from model if available
+            task = None
+            if hasattr(model, 'ml_task'):
+                try:
+                    task = model.ml_task.value if hasattr(model.ml_task, 'value') else str(model.ml_task)
+                except Exception:
+                    pass
+
+            self._save_metadata(task=task)
             logger.info(f"Saved best model (epoch {epoch}, {comparison_metric}={current_metric})")
             saved_path = str(best_path)
         
