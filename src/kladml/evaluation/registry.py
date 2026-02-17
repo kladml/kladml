@@ -9,15 +9,16 @@ from typing import Type
 from kladml.tasks import MLTask
 from kladml.evaluation.base import BaseEvaluator
 from kladml.evaluation.classification.evaluator import ClassificationEvaluator
-# from kladml.evaluation.regression.evaluator import RegressionEvaluator # TODO: Implement
+from kladml.evaluation.regression.evaluator import RegressionEvaluator
+from kladml.evaluation.timeseries.evaluator import TimeSeriesEvaluator
 
 class EvaluatorRegistry:
     """Registry for discovering Evaluators."""
     
     _REGISTRY = {
         MLTask.CLASSIFICATION: ClassificationEvaluator,
-        # MLTask.REGRESSION: RegressionEvaluator,
-        # MLTask.TIMESERIES_FORECASTING: TimeSeriesEvaluator,
+        MLTask.REGRESSION: RegressionEvaluator,
+        MLTask.TIMESERIES_FORECASTING: TimeSeriesEvaluator,
     }
     
     @classmethod
