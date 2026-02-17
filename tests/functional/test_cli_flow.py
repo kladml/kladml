@@ -40,37 +40,47 @@ def runner():
 @pytest.fixture(autouse=True)
 def setup_cli_env():
     """Setup temp workspace for CLI tests."""
-    # Force reset globals in session module just in case
-    import kladml.db.session
-    kladml.db.session._engine = None
-    kladml.db.session._session_factory = None
-
     # Create temp dir for execution
     cwd = os.getcwd()
     temp_dir = tempfile.mkdtemp()
     os.chdir(temp_dir)
-    
-    # Setup DB path
+
+    # Setup DB path - use proper KLADML_ prefix for Pydantic settings
     db_path = Path(temp_dir) / "test_cli.db"
-    os.environ["KLADML_DB_PATH"] = str(db_path)
-    
+    os.environ["KLADML_DATABASE_URL"] = f"sqlite:///{db_path}"
+
     # Setup MLflow path to avoid polluting user's ./mlruns
-    os.environ["MLFLOW_TRACKING_URI"] = f"sqlite:///{temp_dir}/mlflow.db"
-    
+    os.environ["KLADML_MLFLOW_TRACKING_URI"] = f"sqlite:///{temp_dir}/mlflow.db"
+
+    # Reload settings to pick up new env vars
+    import importlib
+    import kladml.config.settings
+    importlib.reload(kladml.config.settings)
+
+    # Force reset globals in session module
+    import kladml.db.session
+    kladml.db.session._engine = None
+    kladml.db.session._session_factory = None
+    importlib.reload(kladml.db.session)
+
+    from kladml.db.session import reset_db, init_db
+
     # Reset DB
     try:
         reset_db()
         init_db()
     except:
         pass
-        
+
     yield temp_dir
-    
+
     # Cleanup
     os.chdir(cwd)
     shutil.rmtree(temp_dir)
-    if "KLADML_DB_PATH" in os.environ:
-        del os.environ["KLADML_DB_PATH"]
+    if "KLADML_DATABASE_URL" in os.environ:
+        del os.environ["KLADML_DATABASE_URL"]
+    if "KLADML_MLFLOW_TRACKING_URI" in os.environ:
+        del os.environ["KLADML_MLFLOW_TRACKING_URI"]
 
 
 def test_project_lifecycle(runner, setup_cli_env):
