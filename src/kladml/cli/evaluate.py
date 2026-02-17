@@ -6,7 +6,7 @@ from typing import Optional
 
 from kladml.evaluation.registry import EvaluatorRegistry
 from kladml.tasks import MLTask
-# from kladml.utils.loading import load_model_metadata # Hypothetical helper
+from kladml.utils.loading import detect_ml_task
 
 app = typer.Typer(help="Run evaluations.")
 console = Console()
@@ -41,12 +41,22 @@ def run_evaluation(
         # Better: Try to deduce from EvaluatorRegistry if not provided? No, we need task to PICK evaluator.
         
         if not task:
-            # TODO: Load model metadata to find task
             console.print("[yellow]Task not specified. Trying to detect...[/yellow]")
-            # Placeholder detection
-            detected_task = MLTask.CLASSIFICATION # Fallback
-            console.print(f"Assuming task: [cyan]{detected_task.value}[/cyan]")
-            task_enum = detected_task
+
+            # Try to detect task from model/run metadata
+            detected_task = detect_ml_task(
+                model_path=model_path,
+                run_dir=str(Path(model_path).parent) if model_path else None,
+            )
+
+            if detected_task:
+                console.print(f"[green]Detected task:[/green] [cyan]{detected_task.value}[/cyan]")
+                task_enum = detected_task
+            else:
+                # Fallback to classification with warning
+                console.print("[yellow]Could not auto-detect task. Defaulting to classification.[/yellow]")
+                console.print("[dim]Tip: Specify --task for accurate evaluation.[/dim]")
+                task_enum = MLTask.CLASSIFICATION
         else:
             try:
                 task_enum = MLTask(task.lower())
