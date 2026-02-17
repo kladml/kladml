@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI:** `evaluate` command now auto-detects task from model or checkpoint metadata instead of defaulting to classification.
 - **CLI:** `export` command now reads configuration from metadata.json and checkpoint config, with `--architecture` and `--config` override options.
 - **Export:** TorchScriptExporter now supports optional scaler embedding via `scaler` parameter.
+- **Tracker:** LocalTracker now reads MLflow tracking URI lazily from settings, allowing tests to override settings after module import.
+
+### Fixed
+- **Tests:** Fixed CLI tests using wrong environment variable names (`KLADML_DB_PATH` -> `KLADML_DATABASE_URL`, `MLFLOW_TRACKING_URI` -> `KLADML_MLFLOW_TRACKING_URI`).
 
 ## [0.13.1] - 2026-01-26
 ### Added
