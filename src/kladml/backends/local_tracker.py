@@ -26,16 +26,16 @@ class LocalTracker(TrackerInterface):
     def __init__(self, tracking_dir: str | None = None):
         """
         Initialize local tracker.
-        
+
         Args:
             tracking_dir: Directory for MLflow tracking data (legacy file-based)
         """
-        # Centralized MLflow Tracking (from settings)
-        self._tracking_uri = settings.mlflow_tracking_uri
-        
+        # Lazy-load tracking URI to allow test overrides after module import
+        self._tracking_uri = None
+
         # Determine tracking directory
         # If using SQLite (default), we don't need a metadata dir, but we check if user provided one.
-        # If tracking_dir is None, we default to clean path inside data/ 
+        # If tracking_dir is None, we default to clean path inside data/
         if tracking_dir:
             self.tracking_dir = Path(tracking_dir).resolve()
         else:
@@ -46,30 +46,38 @@ class LocalTracker(TrackerInterface):
         # Artifacts location
         # On centralized setup, could be ~/.kladml/mlartifacts
         self._artifact_root = str(Path.home() / ".kladml" / "mlartifacts")
-        
+
         self._active_run = None
         self._mlflow = None
+
+    @property
+    def tracking_uri(self) -> str:
+        """Get tracking URI from settings (lazy-loaded)."""
+        if self._tracking_uri is None:
+            self._tracking_uri = settings.mlflow_tracking_uri
+        return self._tracking_uri
     
     def _ensure_mlflow(self):
         """Lazy-load MLflow to avoid import overhead."""
         if self._mlflow is None:
             try:
-                # Only create tracking_dir if we are NOT using a DB URI 
-                # OR if we explicitly want to rely on it. 
+                # Only create tracking_dir if we are NOT using a DB URI
+                # OR if we explicitly want to rely on it.
                 # Actually, MLflow might auto-create 'mlruns' if not configured.
                 # But here we set tracking URI.
-                
+
                 # If the URI is a local path (starts with / or file:), ensure it exists.
                 # If it's sqlite:, we ensure the directory for the db exists (likely handled by db module).
-                
+
                 # We create tracking_dir only if it's being used as the backend (file store)
-                is_file_store = not self._tracking_uri.startswith("sqlite:") and not self._tracking_uri.startswith("http")
+                tracking_uri = self.tracking_uri
+                is_file_store = not tracking_uri.startswith("sqlite:") and not tracking_uri.startswith("http")
                 
                 if is_file_store:
                      self.tracking_dir.mkdir(parents=True, exist_ok=True)
-                
+
                 import mlflow
-                mlflow.set_tracking_uri(self._tracking_uri)
+                mlflow.set_tracking_uri(tracking_uri)
                 self._mlflow = mlflow
             except ImportError:
                 raise ImportError(
